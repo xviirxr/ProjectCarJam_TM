@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 4b0f7103e5aae6a48b28d0e1dd07ad07
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 166483
+  packageName: Hierarchy 2
+  packageVersion: 1.3.0
+  assetPath: Assets/Hierarchy 2/Runtime/HierarchyFolder.cs
+  uploadId: 475020

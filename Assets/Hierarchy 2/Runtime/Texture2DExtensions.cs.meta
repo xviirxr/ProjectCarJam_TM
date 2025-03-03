@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: d494eb5399fa0ab48a22baaf16f73661
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 166483
+  packageName: Hierarchy 2
+  packageVersion: 1.3.0
+  assetPath: Assets/Hierarchy 2/Runtime/Texture2DExtensions.cs
+  uploadId: 475020
