@@ -17,6 +17,9 @@ public class SplineQueueController : MonoBehaviour
     [SerializeField] private float spawnInterval = 3.0f;
     [SerializeField] private bool autoSpawn = true;
 
+    [Header("Pool Settings")]
+    [SerializeField] private Transform NpcHolder;
+
     private float splineLength;
     private float nextSpawnTime;
 
@@ -76,6 +79,7 @@ public class SplineQueueController : MonoBehaviour
 
         npcController.Initialize(queueSpline, npcManager, GetQueueCount());
         npcManager.RegisterNPC(npcController);
+        newNPC.transform.SetParent(NpcHolder.transform);
     }
 
     /// <summary>

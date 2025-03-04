@@ -12,7 +12,7 @@ public class NPCManager : MonoBehaviour
     {
         if (splineQueueController == null)
         {
-            splineQueueController = FindObjectOfType<SplineQueueController>();
+            splineQueueController = FindFirstObjectByType<SplineQueueController>();
             if (splineQueueController == null)
             {
                 Debug.LogError("SplineQueueController not found in scene!");

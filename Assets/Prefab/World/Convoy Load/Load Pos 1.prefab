@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2397430361718245093
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8478415368432146214}
+  m_Layer: 0
+  m_Name: Parking Transform
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8478415368432146214
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2397430361718245093}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0.2, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7299267503365102889}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!1 &2401235277802134244
 GameObject:
   m_ObjectHideFlags: 0
@@ -12,6 +43,7 @@ GameObject:
   - component: {fileID: 3779513224414999632}
   - component: {fileID: 4126856530224451698}
   - component: {fileID: 1974363160839317725}
+  - component: {fileID: 8759960969615768174}
   m_Layer: 0
   m_Name: Load Pos 1
   m_TagString: Untagged
@@ -27,13 +59,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2401235277802134244}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.31004897, z: -0, w: 0.95072067}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -21, y: 0, z: -4.06}
   m_LocalScale: {x: 11.31498, y: 1, z: 5.043925}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 8478415368432146214}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -36.124, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3779513224414999632
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -108,3 +141,21 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8759960969615768174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2401235277802134244}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5fa48124f17bd348b34ce94f55b5aed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  parkingPosition: {fileID: 8478415368432146214}
+  passengerEntryPoints: []
+  availableColor: {r: 0, g: 1, b: 0, a: 1}
+  occupiedColor: {r: 1, g: 0, b: 0, a: 1}
+  reservedColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  showDebugVisuals: 1
