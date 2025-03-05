@@ -7,6 +7,8 @@ public class NPCManager : MonoBehaviour
     [SerializeField] private SplineQueueController splineQueueController;
 
     private List<NPCController> npcsInQueue = new List<NPCController>();
+    private float updateQueuePositionsTimer = 0f;
+    private float updateQueueInterval = 0.5f;
 
     private void Awake()
     {
@@ -20,21 +22,29 @@ public class NPCManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Registers a new NPC in the queue
-    /// </summary>
+    private void Update()
+    {
+        // Periodically update queue positions to ensure all NPCs have correct targets
+        updateQueuePositionsTimer += Time.deltaTime;
+        if (updateQueuePositionsTimer >= updateQueueInterval)
+        {
+            UpdateAllNPCPositions();
+            updateQueuePositionsTimer = 0f;
+        }
+    }
+
     public void RegisterNPC(NPCController npc)
     {
         if (!npcsInQueue.Contains(npc))
         {
             npcsInQueue.Add(npc);
             npc.SetQueueIndex(npcsInQueue.Count - 1);
+
+            // Force update of all NPCs when a new one is added
+            UpdateAllNPCPositions();
         }
     }
 
-    /// <summary>
-    /// Unregisters an NPC from the queue
-    /// </summary>
     public void UnregisterNPC(NPCController npc)
     {
         int index = npcsInQueue.IndexOf(npc);
@@ -42,16 +52,29 @@ public class NPCManager : MonoBehaviour
         {
             npcsInQueue.RemoveAt(index);
 
+            // Update indices for all NPCs behind the removed one
             for (int i = index; i < npcsInQueue.Count; i++)
             {
                 npcsInQueue[i].SetQueueIndex(i);
             }
+
+            // Force update of all NPCs when one is removed
+            UpdateAllNPCPositions();
         }
     }
 
-    /// <summary>
-    /// Gets the NPC at the specified index
-    /// </summary>
+    private void UpdateAllNPCPositions()
+    {
+        // Update target positions for all NPCs to ensure they move properly
+        for (int i = 0; i < npcsInQueue.Count; i++)
+        {
+            if (npcsInQueue[i] != null)
+            {
+                npcsInQueue[i].UpdateTargetPosition();
+            }
+        }
+    }
+
     public NPCController GetNPCAtIndex(int index)
     {
         if (index >= 0 && index < npcsInQueue.Count)
@@ -61,33 +84,21 @@ public class NPCManager : MonoBehaviour
         return null;
     }
 
-    /// <summary>
-    /// Gets the number of NPCs in the queue
-    /// </summary>
     public int GetNPCCount()
     {
         return npcsInQueue.Count;
     }
 
-    /// <summary>
-    /// Gets the index of an NPC in the queue
-    /// </summary>
     public int GetIndexOfNPC(NPCController npc)
     {
         return npcsInQueue.IndexOf(npc);
     }
 
-    /// <summary>
-    /// Gets the reference to the SplineQueueController
-    /// </summary>
     public SplineQueueController GetSplineQueueController()
     {
         return splineQueueController;
     }
 
-    /// <summary>
-    /// Clears all NPCs from the queue
-    /// </summary>
     public void ClearAllNPCs()
     {
         for (int i = npcsInQueue.Count - 1; i >= 0; i--)
@@ -97,9 +108,6 @@ public class NPCManager : MonoBehaviour
         npcsInQueue.Clear();
     }
 
-    /// <summary>
-    /// Services and removes the NPC at the front of the queue
-    /// </summary>
     public void ServiceFrontNPC(float serviceTime = 0)
     {
         if (npcsInQueue.Count > 0)

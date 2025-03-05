@@ -17,6 +17,7 @@ public class VehicleController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 3f;
     [SerializeField] private float arrivalDistance = 0.5f;
     [SerializeField] private float departDelay = 3f;
+    [SerializeField] private float passengerBoardingDelay = 0.5f;
 
     [Header("Physics")]
     [SerializeField] private float acceleration = 2f;
@@ -35,14 +36,20 @@ public class VehicleController : MonoBehaviour
     private Quaternion targetRotation;
     private float currentSpeed = 0f;
 
-    private enum VehicleState
+    // Departure path variables
+    private Transform[] departurePathPoints;
+    private int currentPathIndex = 0;
+    private bool isFollowingDeparturePath = false;
+
+    public enum VehicleState
     {
         Idle,
         DrivingToParking,
         Parked,
         LoadingPassengers,
         PassengersLoaded,
-        Departing
+        Departing,
+        FollowingDeparturePath
     }
 
     private VehicleState currentState = VehicleState.Idle;
@@ -59,6 +66,9 @@ public class VehicleController : MonoBehaviour
 
     [ShowInInspector, ReadOnly]
     public bool IsCurrentlyAssigned => isAssigned;
+
+    [ShowInInspector, ReadOnly]
+    public int CurrentPathPointIndex => currentPathIndex;
 #endif
 
     private void Start()
@@ -132,6 +142,10 @@ public class VehicleController : MonoBehaviour
                 CheckAllPassengersLoaded();
                 break;
 
+            case VehicleState.FollowingDeparturePath:
+                FollowDeparturePath();
+                break;
+
             case VehicleState.Departing:
                 DriveToTargetPosition();
                 break;
@@ -191,12 +205,94 @@ public class VehicleController : MonoBehaviour
     }
 
     /// <summary>
+    /// Follows the departure path points
+    /// </summary>
+    private void FollowDeparturePath()
+    {
+        if (!isFollowingDeparturePath || departurePathPoints == null || departurePathPoints.Length == 0)
+        {
+            // If we have no path, go straight to departing
+            currentState = VehicleState.Departing;
+            SetFinalDepartureTarget();
+            return;
+        }
+
+        // Make sure we have a valid current index
+        if (currentPathIndex >= departurePathPoints.Length)
+        {
+            // We've reached the end of the path
+            currentState = VehicleState.Departing;
+            SetFinalDepartureTarget();
+            return;
+        }
+
+        // Make sure the current path point is valid
+        if (departurePathPoints[currentPathIndex] == null)
+        {
+            // Skip invalid points
+            currentPathIndex++;
+            if (currentPathIndex >= departurePathPoints.Length)
+            {
+                currentState = VehicleState.Departing;
+                SetFinalDepartureTarget();
+                return;
+            }
+        }
+
+        // Set target to the current path point
+        targetPosition = departurePathPoints[currentPathIndex].position;
+        targetRotation = departurePathPoints[currentPathIndex].rotation;
+        isDriving = true; // Make sure driving is enabled
+
+        // Calculate distance to current point
+        float distanceToTarget = Vector3.Distance(transform.position, targetPosition);
+
+        // Check if we've reached the current path point
+        if (distanceToTarget <= arrivalDistance)
+        {
+            // Move to next path point
+            currentPathIndex++;
+
+            // Set next target immediately instead of waiting for next frame
+            if (currentPathIndex < departurePathPoints.Length)
+            {
+                targetPosition = departurePathPoints[currentPathIndex].position;
+                targetRotation = departurePathPoints[currentPathIndex].rotation;
+            }
+            else
+            {
+                // We've reached the end of the path
+                currentState = VehicleState.Departing;
+                SetFinalDepartureTarget();
+            }
+        }
+
+        // Continue driving (reuse the same driving logic)
+        DriveToTargetPosition();
+    }
+
+    /// <summary>
+    /// Set the final departure target (after following the path)
+    /// </summary>
+    private void SetFinalDepartureTarget()
+    {
+        // Set target to a point off-screen in the direction we're facing
+        targetPosition = transform.position + transform.forward * 50f;
+        isDriving = true;
+        currentSpeed = moveSpeed * 0.5f; // Start with some initial speed
+    }
+
+    /// <summary>
     /// Called when vehicle arrives at destination
     /// </summary>
     private void ArriveAtDestination()
     {
-        isDriving = false;
-        currentSpeed = 0f;
+        // For path following, we don't want to stop driving
+        if (currentState != VehicleState.FollowingDeparturePath)
+        {
+            isDriving = false;
+            currentSpeed = 0f;
+        }
 
         // Snap to exact position and rotation
         transform.position = targetPosition;
@@ -207,6 +303,14 @@ public class VehicleController : MonoBehaviour
         {
             currentState = VehicleState.Parked;
             isParked = true;
+            isDriving = false; // Stop driving when parked
+
+            // Show passenger UI when we arrive at parking
+            VehiclePassengerUIManager passengerUIManager = GetComponent<VehiclePassengerUIManager>();
+            if (passengerUIManager != null)
+            {
+                passengerUIManager.ShowUI();
+            }
 
             // Notify parking space that we've arrived
             if (assignedParkSpace != null)
@@ -214,18 +318,52 @@ public class VehicleController : MonoBehaviour
                 assignedParkSpace.VehicleArrived(this);
             }
         }
+        else if (currentState == VehicleState.FollowingDeparturePath)
+        {
+            // Move to the next point in the path
+            currentPathIndex++;
+            isDriving = true; // Keep driving
+
+            if (currentPathIndex >= departurePathPoints.Length)
+            {
+                // End of path reached
+                currentState = VehicleState.Departing;
+                SetFinalDepartureTarget();
+            }
+            else
+            {
+                // Continue to next point
+                targetPosition = departurePathPoints[currentPathIndex].position;
+                targetRotation = departurePathPoints[currentPathIndex].rotation;
+            }
+        }
         else if (currentState == VehicleState.Departing)
         {
             // We've left the scene, return to pool or destroy
             currentState = VehicleState.Idle;
+            isDriving = false; // Stop driving
+
             if (parkingManager != null)
             {
                 // Just mark as unassigned to be reused
                 isAssigned = false;
             }
 
+            // Reset path variables
+            departurePathPoints = null;
+            currentPathIndex = 0;
+            isFollowingDeparturePath = false;
+
             // Clear passenger list
             assignedPassengers.Clear();
+
+            // Make sure UI is hidden
+            VehiclePassengerUIManager passengerUIManager = GetComponent<VehiclePassengerUIManager>();
+            if (passengerUIManager != null)
+            {
+                passengerUIManager.ResetAllSeats();
+                passengerUIManager.HideUI();
+            }
         }
     }
 
@@ -255,9 +393,20 @@ public class VehicleController : MonoBehaviour
     }
 
     /// <summary>
+    /// Adds a single passenger to this vehicle
+    /// </summary>
+    public void AddPassenger(NPCController passenger)
+    {
+        if (passenger != null && !assignedPassengers.Contains(passenger))
+        {
+            assignedPassengers.Add(passenger);
+        }
+    }
+
+    /// <summary>
     /// Calculates a seat position based on index
     /// </summary>
-    private Vector3 CalculateSeatPosition(int seatIndex)
+    public Vector3 CalculateSeatPosition(int seatIndex)
     {
         // Calculate a grid layout for seats based on vehicle size
         float rowSpacing = 1.0f;
@@ -296,6 +445,25 @@ public class VehicleController : MonoBehaviour
         if (assignedPassengers.Count == 0)
             return;
 
+        // Remove null references (destroyed passengers)
+        for (int i = assignedPassengers.Count - 1; i >= 0; i--)
+        {
+            if (assignedPassengers[i] == null)
+            {
+                assignedPassengers.RemoveAt(i);
+            }
+        }
+
+        // If all passengers have been destroyed (meaning they've boarded)
+        // and we still have passenger entries in our list, we're just waiting for cleanup
+        if (assignedPassengers.Count == 0)
+        {
+            currentState = VehicleState.PassengersLoaded;
+            isReadyToDepart = true;
+            StartCoroutine(DepartAfterDelay());
+            return;
+        }
+
         // Check if all passengers have reached their seats
         bool allSeated = true;
         foreach (NPCController passenger in assignedPassengers)
@@ -332,25 +500,56 @@ public class VehicleController : MonoBehaviour
     {
         if (assignedParkSpace != null && parkingManager != null)
         {
+            // Get the departure path from the parking space
+            departurePathPoints = assignedParkSpace.GetDeparturePathPositions();
+
+            // Notify manager that we're departing
             parkingManager.VehicleDeparting(this, assignedParkSpace);
         }
 
-        currentState = VehicleState.Departing;
+        // Update vehicle state
         isParked = false;
         isDriving = true;
         isReadyToDepart = false;
 
-        // Move all passengers to be children of this vehicle
-        foreach (NPCController passenger in assignedPassengers)
+        // Clear the passenger list
+        assignedPassengers.Clear();
+
+        // Reset and hide passenger UI
+        VehiclePassengerUIManager passengerUIManager = GetComponent<VehiclePassengerUIManager>();
+        if (passengerUIManager != null)
         {
-            if (passenger != null)
-            {
-                passenger.transform.SetParent(transform);
-            }
+            passengerUIManager.ResetAllSeats();
+            passengerUIManager.OnVehicleDeparting(); // Explicit call to hide UI
         }
 
-        // Set target to a point off-screen
-        targetPosition = transform.position + transform.forward * 50f;
+        // If we have a departure path, follow it
+        if (departurePathPoints != null && departurePathPoints.Length > 0)
+        {
+            Debug.Log("Starting departure path with " + departurePathPoints.Length + " points");
+            currentState = VehicleState.FollowingDeparturePath;
+            isFollowingDeparturePath = true;
+            currentPathIndex = 0;
+
+            // Set initial target to first point (parking entry/exit point)
+            targetPosition = departurePathPoints[0].position;
+            targetRotation = departurePathPoints[0].rotation;
+        }
+        else
+        {
+            // No path, just depart in current direction
+            Debug.LogWarning("No departure path found, departing directly");
+            currentState = VehicleState.Departing;
+            SetFinalDepartureTarget();
+        }
+    }
+
+    /// <summary>
+    /// Gets the current state of the vehicle
+    /// </summary>
+    public VehicleState GetCurrentState()
+    {
+        return currentState;
     }
 
     /// <summary>
@@ -405,6 +604,27 @@ public class VehicleController : MonoBehaviour
     {
         StopAllCoroutines();
         Depart();
+    }
+
+    /// <summary>
+    /// Returns the boarding delay for this vehicle type
+    /// </summary>
+    public float GetPassengerBoardingDelay()
+    {
+        return passengerBoardingDelay;
+    }
+
+    /// <summary>
+    /// Called by PassengerAccommodationManager when a passenger reaches their seat
+    /// </summary>
+    public void NotifyPassengerSeated(int seatIndex)
+    {
+        // Update UI directly
+        VehiclePassengerUIManager passengerUIManager = GetComponent<VehiclePassengerUIManager>();
+        if (passengerUIManager != null)
+        {
+            passengerUIManager.SetSeatOccupied(seatIndex, true);
+        }
     }
 
     private void OnDestroy()

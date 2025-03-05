@@ -5,24 +5,22 @@ using UnityEngine;
 using Sirenix.OdinInspector;
 #endif
 
-/// <summary>
-/// Provides touch interaction to summon the tapped vehicle to a parking space
-/// </summary>
 public class VehicleInteraction : MonoBehaviour
 {
     private ParkingSpaceManager parkingManager;
     private VehicleController vehicleController;
+    private VehicleTraversalController traversalController;
 
     private void Start()
     {
-        // Get the VehicleController from this object
         vehicleController = GetComponent<VehicleController>();
         if (vehicleController == null)
         {
             Debug.LogError("No VehicleController found on this object!");
         }
 
-        // Auto-find parking manager if not assigned
+        traversalController = GetComponent<VehicleTraversalController>();
+
         if (parkingManager == null)
         {
             parkingManager = FindFirstObjectByType<ParkingSpaceManager>();
@@ -35,14 +33,12 @@ public class VehicleInteraction : MonoBehaviour
 
     private void Update()
     {
-        // Handle touch input for mobile
         if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
         {
             HandleTouchInput(Input.GetTouch(0).position);
         }
 
 #if UNITY_EDITOR
-        // For testing in editor with mouse
         if (Input.GetMouseButtonDown(0))
         {
             HandleTouchInput(Input.mousePosition);
@@ -60,9 +56,34 @@ public class VehicleInteraction : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit))
         {
-            // Check if this object was tapped
             if (hit.transform == transform)
             {
+                if (vehicleController != null)
+                {
+                    VehicleController.VehicleState currentState = vehicleController.GetCurrentState();
+
+                    if (currentState == VehicleController.VehicleState.LoadingPassengers ||
+                        currentState == VehicleController.VehicleState.PassengersLoaded ||
+                        currentState == VehicleController.VehicleState.FollowingDeparturePath ||
+                        currentState == VehicleController.VehicleState.Departing)
+                    {
+                        Debug.Log("Vehicle is already occupied or departing. Cannot interact.");
+                        return;
+                    }
+
+                    if (vehicleController.GetAvailableSeats() <= 0)
+                    {
+                        Debug.Log("Vehicle is fully occupied. Cannot interact.");
+                        return;
+                    }
+
+                    if (traversalController != null && traversalController.IsFollowingTraversalPath())
+                    {
+                        Debug.Log("Vehicle is already following a traversal path. Cannot interact.");
+                        return;
+                    }
+                }
+
                 AssignVehicleToParking();
             }
         }
@@ -79,23 +100,28 @@ public class VehicleInteraction : MonoBehaviour
             return;
         }
 
-        // Check if the vehicle is already assigned
         if (vehicleController.IsAssigned())
         {
             Debug.Log("Vehicle is already assigned to a parking space.");
             return;
         }
 
-        // Find an available parking space
         ParkSpaceController availableSpace = FindAvailableSpace();
 
         if (availableSpace != null)
         {
-            // Assign this specific vehicle to the parking space
-            vehicleController.AssignParkingSpace(availableSpace);
-            availableSpace.AssignVehicle(vehicleController);
-
-            Debug.Log($"Assigning tapped vehicle {gameObject.name} to parking space.");
+            if (traversalController != null)
+            {
+                traversalController.StartTraversalToParkingSpace(availableSpace);
+                availableSpace.AssignVehicle(vehicleController);
+                Debug.Log($"Assigning tapped vehicle {gameObject.name} to parking space via traversal path.");
+            }
+            else
+            {
+                vehicleController.AssignParkingSpace(availableSpace);
+                availableSpace.AssignVehicle(vehicleController);
+                Debug.Log($"Assigning tapped vehicle {gameObject.name} to parking space directly.");
+            }
         }
         else
         {
@@ -111,13 +137,11 @@ public class VehicleInteraction : MonoBehaviour
         if (parkingManager == null)
             return null;
 
-        // Get all parking spaces
         ParkSpaceController[] spaces = parkingManager.GetParkingSpaces();
 
         if (spaces == null || spaces.Length == 0)
             return null;
 
-        // Find first unoccupied space
         foreach (ParkSpaceController space in spaces)
         {
             if (space != null && !space.IsOccupied())
@@ -138,6 +162,27 @@ public class VehicleInteraction : MonoBehaviour
         }
 
         AssignVehicleToParking();
+    }
+
+    [Button("Test Path Finding")]
+    private void TestPathFinding()
+    {
+        if (traversalController == null)
+        {
+            Debug.LogError("Cannot test - No VehicleTraversalController attached to this object!");
+            return;
+        }
+
+        ParkSpaceController availableSpace = FindAvailableSpace();
+        if (availableSpace != null)
+        {
+            traversalController.StartTraversalToParkingSpace(availableSpace);
+            Debug.Log("Test path finding started to parking space: " + availableSpace.name);
+        }
+        else
+        {
+            Debug.LogError("No available parking spaces for path test!");
+        }
     }
 #endif
 }

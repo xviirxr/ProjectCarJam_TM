@@ -13,28 +13,26 @@ public class NPCController : MonoBehaviour
     [SerializeField] private bool useAnimator = true;
     [SerializeField] private string walkParameterName = "isWalking";
 
-    // Queue position data
     private SplineContainer queueSpline;
     private NPCManager npcManager;
     private int queueIndex;
-    private float currentPosition; // Position on spline from 0 to 1
-    private float targetPosition; // Target position on spline
+    private float currentPosition;
+    private float targetPosition;
     private bool hasReachedDestination;
     private float walkSpeed;
     private float spacingBetweenNPCs;
     private float splineLength;
 
-    // Custom destination for vehicle boarding
     private bool isCustomDestination = false;
     private Vector3 customDestinationPosition;
     private Quaternion customDestinationRotation;
 
-    // Components
     private Animator animator;
+    private float lastQueueCheckTime = 0f;
+    private float queueCheckInterval = 0.2f;
 
     private void Awake()
     {
-        // Get the animator component if needed
         if (useAnimator)
         {
             animator = GetComponent<Animator>();
@@ -45,9 +43,6 @@ public class NPCController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Initializes the NPC with necessary references and position in queue
-    /// </summary>
     public void Initialize(SplineContainer spline, NPCManager manager, int initialIndex)
     {
         queueSpline = spline;
@@ -56,8 +51,8 @@ public class NPCController : MonoBehaviour
         currentPosition = 0;
         hasReachedDestination = false;
         isCustomDestination = false;
+        lastQueueCheckTime = Time.time;
 
-        // Get configuration from the spline controller
         SplineQueueController splineController = npcManager.GetSplineQueueController();
         if (splineController != null)
         {
@@ -73,13 +68,11 @@ public class NPCController : MonoBehaviour
             splineLength = 10f;
         }
 
-        // Calculate initial target position
         UpdateTargetPosition();
     }
 
     private void Update()
     {
-        // Handle custom destination movement if assigned
         if (isCustomDestination)
         {
             MoveToCustomDestination();
@@ -89,26 +82,22 @@ public class NPCController : MonoBehaviour
         if (queueSpline == null || npcManager == null)
             return;
 
-        // Move along the spline if not at destination
         if (!hasReachedDestination)
         {
             MoveAlongSpline();
         }
 
-        // Place NPC on the spline
         PlaceOnSpline();
 
-        // Check if we need to recalculate our target position
-        // (in case NPCs ahead of us have moved or been removed)
-        UpdateTargetPosition();
-
-        // Check if we need to move forward in the queue
-        CheckForwardMovement();
+        // Periodically check for queue changes to avoid excessive updates
+        if (Time.time >= lastQueueCheckTime + queueCheckInterval)
+        {
+            lastQueueCheckTime = Time.time;
+            UpdateTargetPosition();
+            CheckForwardMovement();
+        }
     }
 
-    /// <summary>
-    /// Sets a custom destination for the NPC (used for vehicle boarding)
-    /// </summary>
     public void SetCustomDestination(Vector3 position, Quaternion rotation)
     {
         isCustomDestination = true;
@@ -116,29 +105,21 @@ public class NPCController : MonoBehaviour
         customDestinationRotation = rotation;
         hasReachedDestination = false;
 
-        // Start the walking animation
         if (useAnimator && animator != null)
         {
             animator.SetBool(walkParameterName, true);
         }
     }
 
-    /// <summary>
-    /// Handles movement to a custom destination (like a vehicle seat)
-    /// </summary>
     private void MoveToCustomDestination()
     {
-        // Calculate distance to destination
         float distance = Vector3.Distance(transform.position, customDestinationPosition);
 
-        // Check if we've arrived
         if (distance <= 0.1f)
         {
-            // We've reached the destination
             transform.position = customDestinationPosition;
             transform.rotation = customDestinationRotation;
 
-            // Update animation state
             if (useAnimator && animator != null)
             {
                 animator.SetBool(walkParameterName, false);
@@ -148,14 +129,10 @@ public class NPCController : MonoBehaviour
             return;
         }
 
-        // Move toward destination
         float speed = walkSpeed * Time.deltaTime;
         transform.position = Vector3.MoveTowards(transform.position, customDestinationPosition, speed);
-
-        // Rotate toward the target rotation
         transform.rotation = Quaternion.Slerp(transform.rotation, customDestinationRotation, 5f * Time.deltaTime);
 
-        // Ensure the walking animation is playing
         if (useAnimator && animator != null)
         {
             animator.SetBool(walkParameterName, true);
@@ -164,38 +141,34 @@ public class NPCController : MonoBehaviour
 
     private void MoveAlongSpline()
     {
-        // Calculate movement this frame
         float step = (walkSpeed / splineLength) * Time.deltaTime;
 
-        // Check if we're close to target
         if (Mathf.Abs(currentPosition - targetPosition) < step)
         {
             currentPosition = targetPosition;
-            hasReachedDestination = true;
 
-            // Update animation state
-            if (useAnimator && animator != null)
+            // Only mark as reached destination if we're at the final target
+            // (important for gap filling behavior)
+            if (queueIndex == 0 || Mathf.Approximately(targetPosition, GetFinalTargetPosition()))
             {
-                animator.SetBool(walkParameterName, false);
-            }
+                hasReachedDestination = true;
 
-            // If this is the first NPC, it has reached the end of the line
-            if (queueIndex == 0)
-            {
-                OnReachedFront();
+                if (useAnimator && animator != null)
+                {
+                    animator.SetBool(walkParameterName, false);
+                }
+
+                if (queueIndex == 0)
+                {
+                    OnReachedFront();
+                }
             }
         }
         else
         {
-            // Move toward target
-            currentPosition = Mathf.MoveTowards(
-                currentPosition,
-                targetPosition,
-                step
-            );
+            currentPosition = Mathf.MoveTowards(currentPosition, targetPosition, step);
             hasReachedDestination = false;
 
-            // Update animation state
             if (useAnimator && animator != null)
             {
                 animator.SetBool(walkParameterName, true);
@@ -205,57 +178,76 @@ public class NPCController : MonoBehaviour
 
     private void PlaceOnSpline()
     {
-        // Get position and orientation from spline
         float t = currentPosition;
         float3 position = queueSpline.EvaluatePosition(t);
         float3 tangent = queueSpline.EvaluateTangent(t);
         float3 up = queueSpline.EvaluateUpVector(t);
 
-        // Set position
         transform.position = position;
 
-        // Set rotation to face along spline
         if (math.lengthsq(tangent) > 0.001f)
         {
             transform.rotation = Quaternion.LookRotation(tangent, up);
         }
     }
 
-    /// <summary>
-    /// Updates the target position based on queue position
-    /// </summary>
-    public void UpdateTargetPosition()
+    private float GetFinalTargetPosition()
     {
-        // If in custom destination mode, don't update target position
-        if (isCustomDestination)
-            return;
-
-        // Front of line (index 0) goes to end of spline
         if (queueIndex == 0)
         {
-            targetPosition = 1.0f; // End of spline
+            return 1.0f;
         }
         else
         {
-            // Get the NPC in front of us
+            // Calculate where this NPC should be based on its position in line
+            float spacing = spacingBetweenNPCs / splineLength;
+            return Mathf.Clamp01(1.0f - (queueIndex * spacing));
+        }
+    }
+
+    public void UpdateTargetPosition()
+    {
+        if (isCustomDestination)
+            return;
+
+        if (queueIndex == 0)
+        {
+            targetPosition = 1.0f;
+        }
+        else
+        {
             NPCController npcInFront = npcManager.GetNPCAtIndex(queueIndex - 1);
 
             if (npcInFront != null)
             {
-                // Calculate spacing in normalized spline units
                 float spacing = spacingBetweenNPCs / splineLength;
 
-                // Target position is behind the NPC in front
-                targetPosition = Mathf.Max(0, npcInFront.GetCurrentPosition() - spacing);
+                // Target position is directly behind the NPC in front
+                float targetBehindFront = Mathf.Max(0, npcInFront.GetCurrentPosition() - spacing);
 
-                // If NPC in front has reached its destination, and we're close to our target,
-                // we should also stop
+                // Check if we should force a gap fill
+                // If the NPC in front is far ahead, set our target to follow them
+                float currentFrontPos = npcInFront.GetCurrentPosition();
+                float minExpectedPosition = 1.0f - ((queueIndex - 1) * spacing);
+
+                if (currentFrontPos > minExpectedPosition + (spacing * 0.5f) &&
+                    npcInFront.HasReachedDestination())
+                {
+                    // Gap detected - move to fill it
+                    targetPosition = targetBehindFront;
+                    hasReachedDestination = false;
+                }
+                else
+                {
+                    targetPosition = targetBehindFront;
+                }
+
+                // Update animation state based on whether we need to move
                 if (npcInFront.HasReachedDestination() &&
                     Mathf.Abs(currentPosition - targetPosition) < 0.01f)
                 {
                     hasReachedDestination = true;
 
-                    // Stop the walking animation
                     if (useAnimator && animator != null)
                     {
                         animator.SetBool(walkParameterName, false);
@@ -272,30 +264,23 @@ public class NPCController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Checks if we need to move forward in the queue
-    /// </summary>
     private void CheckForwardMovement()
     {
-        // If in custom destination mode, don't check forward movement
         if (isCustomDestination)
             return;
 
-        // Get our current actual index from the manager
         int currentRealIndex = npcManager.GetIndexOfNPC(this);
 
-        // If our real index is different from what we think, update it
         if (currentRealIndex != -1 && currentRealIndex != queueIndex)
         {
+            int oldIndex = queueIndex;
             queueIndex = currentRealIndex;
 
-            // Only set hasReachedDestination to false if we need to move forward
-            // (i.e., our index decreased, meaning we're closer to the front)
-            if (currentRealIndex < queueIndex)
+            // Force movement if our position in line has changed
+            if (currentRealIndex < oldIndex)
             {
                 hasReachedDestination = false;
 
-                // Start the walking animation again
                 if (useAnimator && animator != null)
                 {
                     animator.SetBool(walkParameterName, true);
@@ -306,69 +291,46 @@ public class NPCController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Called when this NPC reaches the front of the queue
-    /// </summary>
     protected virtual void OnReachedFront()
     {
-        // This can be overridden in derived classes
-        // Default behavior does nothing
+        // Can be overridden in derived classes
     }
 
-    /// <summary>
-    /// Gets the current position of this NPC on the spline
-    /// </summary>
     public float GetCurrentPosition()
     {
         return currentPosition;
     }
 
-    /// <summary>
-    /// Gets whether this NPC has reached its destination
-    /// </summary>
     public bool HasReachedDestination()
     {
         return hasReachedDestination;
     }
 
-    /// <summary>
-    /// Gets the queue index of this NPC
-    /// </summary>
     public int GetQueueIndex()
     {
         return queueIndex;
     }
 
-    /// <summary>
-    /// Sets the queue index for this NPC
-    /// </summary>
     public void SetQueueIndex(int index)
     {
         if (queueIndex != index)
         {
             queueIndex = index;
-            hasReachedDestination = false; // Force recalculation
+            hasReachedDestination = false;
             UpdateTargetPosition();
         }
     }
 
-    /// <summary>
-    /// Returns whether this NPC is currently using a custom destination
-    /// </summary>
     public bool IsUsingCustomDestination()
     {
         return isCustomDestination;
     }
 
-    /// <summary>
-    /// Clears the custom destination and returns to queue-based movement
-    /// </summary>
     public void ClearCustomDestination()
     {
         isCustomDestination = false;
         hasReachedDestination = false;
 
-        // Only reset to queue if we have a valid queue
         if (queueSpline != null && npcManager != null)
         {
             UpdateTargetPosition();
@@ -385,7 +347,6 @@ public class NPCController : MonoBehaviour
             npcManager.UnregisterNPC(this);
         }
 
-        // Destroy this NPC
         Destroy(gameObject);
     }
 }

@@ -10,11 +10,14 @@ public class ParkSpaceController : MonoBehaviour
     [Header("Parking Space Config")]
     [SerializeField] private Transform parkingPosition;
     [SerializeField] private Transform[] passengerEntryPoints;
+    [SerializeField] private Transform parkingEntryExitPoint;
+    [SerializeField] private Transform roadExitPoint;
 
     [Header("Debug Visualization")]
     [SerializeField] private Color availableColor = Color.green;
     [SerializeField] private Color occupiedColor = Color.red;
     [SerializeField] private Color reservedColor = Color.yellow;
+    [SerializeField] private Color departPathColor = Color.blue;
     [SerializeField] private bool showDebugVisuals = true;
 
     private ParkingSpaceManager parkingManager;
@@ -26,10 +29,8 @@ public class ParkSpaceController : MonoBehaviour
 
     private void Awake()
     {
-        // Find visual indicator if any
         visualRenderer = GetComponentInChildren<Renderer>();
 
-        // Default parking position to transform if none assigned
         if (parkingPosition == null)
             parkingPosition = transform;
     }
@@ -63,7 +64,6 @@ public class ParkSpaceController : MonoBehaviour
     {
         if (assignedVehicle == vehicle)
         {
-            // Vehicle has reached its parking position
             if (parkingManager != null)
             {
                 parkingManager.VehicleReadyForPassengers(vehicle, this);
@@ -110,6 +110,44 @@ public class ParkSpaceController : MonoBehaviour
     public Transform GetParkingPosition()
     {
         return parkingPosition;
+    }
+
+    /// <summary>
+    /// Gets the departure path transforms
+    /// </summary>
+    public Transform[] GetDeparturePathPositions()
+    {
+        // Create an array with the two exit points
+        if (parkingEntryExitPoint != null && roadExitPoint != null)
+        {
+            return new Transform[] { parkingEntryExitPoint, roadExitPoint };
+        }
+        else if (parkingEntryExitPoint != null)
+        {
+            return new Transform[] { parkingEntryExitPoint };
+        }
+        else if (roadExitPoint != null)
+        {
+            return new Transform[] { roadExitPoint };
+        }
+
+        return new Transform[0];
+    }
+
+    /// <summary>
+    /// Gets the parking entry/exit point
+    /// </summary>
+    public Transform GetParkingEntryExitPoint()
+    {
+        return parkingEntryExitPoint;
+    }
+
+    /// <summary>
+    /// Gets the road exit point
+    /// </summary>
+    public Transform GetRoadExitPoint()
+    {
+        return roadExitPoint;
     }
 
     /// <summary>
@@ -183,6 +221,29 @@ public class ParkSpaceController : MonoBehaviour
                         Gizmos.DrawLine(parkingPosition.position, point.position);
                 }
             }
+        }
+
+        // Draw entry/exit paths
+        Gizmos.color = departPathColor;
+
+        // Draw from parking position to entry/exit point
+        if (parkingPosition != null && parkingEntryExitPoint != null)
+        {
+            Gizmos.DrawLine(parkingPosition.position, parkingEntryExitPoint.position);
+            Gizmos.DrawSphere(parkingEntryExitPoint.position, 0.3f);
+        }
+
+        // Draw from entry/exit to road exit
+        if (parkingEntryExitPoint != null && roadExitPoint != null)
+        {
+            Gizmos.DrawLine(parkingEntryExitPoint.position, roadExitPoint.position);
+            Gizmos.DrawSphere(roadExitPoint.position, 0.3f);
+        }
+        // If only road exit exists, draw direct line
+        else if (parkingPosition != null && roadExitPoint != null)
+        {
+            Gizmos.DrawLine(parkingPosition.position, roadExitPoint.position);
+            Gizmos.DrawSphere(roadExitPoint.position, 0.3f);
         }
     }
 }

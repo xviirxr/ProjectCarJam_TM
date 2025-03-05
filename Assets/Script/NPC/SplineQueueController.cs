@@ -22,8 +22,9 @@ public class SplineQueueController : MonoBehaviour
 
     private float splineLength;
     private float nextSpawnTime;
-
     private NPCManager npcManager;
+    private float splineLengthUpdateTimer = 0f;
+    private const float SPLINE_LENGTH_UPDATE_INTERVAL = 5f;
 
     private void Start()
     {
@@ -33,7 +34,8 @@ public class SplineQueueController : MonoBehaviour
             return;
         }
 
-        splineLength = queueSpline.CalculateLength();
+        // Calculate initial spline length
+        CalculateSplineLength();
         nextSpawnTime = Time.time + spawnInterval;
 
         npcManager = FindFirstObjectByType<NPCManager>();
@@ -45,6 +47,14 @@ public class SplineQueueController : MonoBehaviour
 
     private void Update()
     {
+        // Periodically recalculate spline length in case it changes
+        splineLengthUpdateTimer += Time.deltaTime;
+        if (splineLengthUpdateTimer >= SPLINE_LENGTH_UPDATE_INTERVAL)
+        {
+            CalculateSplineLength();
+            splineLengthUpdateTimer = 0f;
+        }
+
         if (autoSpawn && Time.time >= nextSpawnTime && !IsQueueFull())
         {
             SpawnNPC();
@@ -52,11 +62,25 @@ public class SplineQueueController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Spawns a new NPC at the start of the spline
-    /// </summary>
+    private void CalculateSplineLength()
+    {
+        if (queueSpline != null)
+        {
+            // Ensure the spline length is calculated correctly
+            splineLength = queueSpline.CalculateLength();
+
+            // Make sure it's not zero or extremely small
+            if (splineLength < 0.1f)
+            {
+                Debug.LogWarning("Spline length is very small (" + splineLength + "), setting to minimum value.");
+                splineLength = 1f;
+            }
+        }
+    }
+
     public void SpawnNPC()
     {
+        // Evaluate the start position of the spline
         float3 spawnPosition = queueSpline.EvaluatePosition(0);
         float3 spawnTangent = queueSpline.EvaluateTangent(0);
         float3 spawnUp = queueSpline.EvaluateUpVector(0);
@@ -67,6 +91,7 @@ public class SplineQueueController : MonoBehaviour
             spawnRotation = Quaternion.LookRotation(spawnTangent, spawnUp);
         }
 
+        // Create a new NPC
         Transform newNPC = Instantiate(npcPrefab, spawnPosition, spawnRotation);
 
         NPCController npcController = newNPC.GetComponent<NPCController>();
@@ -77,62 +102,47 @@ public class SplineQueueController : MonoBehaviour
             return;
         }
 
+        // Initialize the NPC with current queue position
         npcController.Initialize(queueSpline, npcManager, GetQueueCount());
         npcManager.RegisterNPC(npcController);
-        newNPC.transform.SetParent(NpcHolder.transform);
+
+        // Ensure the NPC is parented correctly for organization
+        if (NpcHolder != null)
+        {
+            newNPC.transform.SetParent(NpcHolder);
+        }
     }
 
-    /// <summary>
-    /// Gets the spline used for the queue
-    /// </summary>
     public SplineContainer GetQueueSpline()
     {
         return queueSpline;
     }
 
-    /// <summary>
-    /// Gets the walk speed for NPCs
-    /// </summary>
     public float GetWalkSpeed()
     {
         return walkSpeed;
     }
 
-    /// <summary>
-    /// Gets the spacing between NPCs in the queue
-    /// </summary>
     public float GetSpacingBetweenNPCs()
     {
         return spacingBetweenNPCs;
     }
 
-    /// <summary>
-    /// Gets the length of the spline
-    /// </summary>
     public float GetSplineLength()
     {
         return splineLength;
     }
 
-    /// <summary>
-    /// Gets the current number of NPCs in the queue
-    /// </summary>
     public int GetQueueCount()
     {
         return npcManager != null ? npcManager.GetNPCCount() : 0;
     }
 
-    /// <summary>
-    /// Gets whether the queue is at maximum capacity
-    /// </summary>
     public bool IsQueueFull()
     {
         return GetQueueCount() >= maxQueueSize;
     }
 
-    /// <summary>
-    /// Sets whether NPCs should automatically spawn at intervals
-    /// </summary>
     public void SetAutoSpawn(bool enabled)
     {
         autoSpawn = enabled;
@@ -142,9 +152,6 @@ public class SplineQueueController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Clears all NPCs from the queue
-    /// </summary>
     public void ClearQueue()
     {
         if (npcManager != null)
