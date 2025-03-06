@@ -806,6 +806,7 @@ GameObject:
   - component: {fileID: -3214039320493330952}
   - component: {fileID: 3044087766427867782}
   - component: {fileID: 8802008928141364418}
+  - component: {fileID: 6422041415710115105}
   m_Layer: 7
   m_Name: Vehicle_Small_Car_Variant
   m_TagString: Untagged
@@ -947,6 +948,24 @@ MonoBehaviour:
   forwardArrowIndicator: {fileID: 7143469917957657842}
   moveForwardTime: 2
   blockedMoveDuration: 0.5
+--- !u!114 &6422041415710115105
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9152932048404514567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5054924a00a7b9f46aaa2b2d4143234c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehicleColor: 0
+  randomizeColorOnStart: 1
+  coloredRenderers:
+  - {fileID: 9129249409289344365}
+  originalMaterial: {fileID: 0}
+  colorIndicator: {fileID: 0}
 --- !u!1001 &4321965918385185181
 PrefabInstance:
   m_ObjectHideFlags: 0

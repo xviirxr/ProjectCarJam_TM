@@ -15,6 +15,7 @@ public class PassengerAccommodationManager : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float passengerProcessTime = 0.5f;
     [SerializeField] private bool enableDebugLogs = false;
+    [SerializeField] private bool enforceColorMatching = true;
 
     // Track if we're currently processing a passenger
     private bool isProcessingPassenger = false;
@@ -95,15 +96,83 @@ public class PassengerAccommodationManager : MonoBehaviour
         // Get the next vehicle from the queue
         VehicleData vehicleData = pendingVehicles.Peek();
 
-        // Get the first NPC from the queue
-        NPCController npc = npcManager.GetNPCAtIndex(0);
+        // Get vehicle color if color matching is enabled
+        ColorCodeManager.ColorCode vehicleColor = ColorCodeManager.ColorCode.Red; // Default
+        bool hasVehicleColorComponent = false;
 
-        if (npc != null)
+        if (enforceColorMatching)
         {
-            DebugLog($"Processing passenger: {npc.name} for vehicle");
+            VehicleColorController vehicleColorController = vehicleData.vehicle.GetComponent<VehicleColorController>();
+            if (vehicleColorController != null)
+            {
+                vehicleColor = vehicleColorController.GetVehicleColor();
+                hasVehicleColorComponent = true;
+            }
+            else
+            {
+                DebugLog("Vehicle has no VehicleColorController, disabling color matching for this vehicle");
+            }
+        }
+
+        // Find first matching NPC based on color
+        NPCController matchingNPC = null;
+        int matchingIndex = -1;
+
+        if (enforceColorMatching && hasVehicleColorComponent)
+        {
+            // Search all NPCs in queue for a color match
+            for (int i = 0; i < npcManager.GetNPCCount(); i++)
+            {
+                NPCController npc = npcManager.GetNPCAtIndex(i);
+                if (npc != null)
+                {
+                    NPCColorController npcColorController = npc.GetComponent<NPCColorController>();
+                    if (npcColorController != null)
+                    {
+                        if (npcColorController.GetNPCColor() == vehicleColor)
+                        {
+                            matchingNPC = npc;
+                            matchingIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // If no matching NPC, check if we need to skip this vehicle
+            if (matchingNPC == null)
+            {
+                DebugLog($"No matching NPC found for vehicle with color {vehicleColor}");
+
+                // Skip this vehicle and try the next one
+                pendingVehicles.Dequeue();
+
+                // If there are more vehicles, retry with the next one
+                if (pendingVehicles.Count > 0)
+                {
+                    StartCoroutine(ProcessNextPassengerAfterDelay(0.2f)); // Quick retry with next vehicle
+                }
+                else
+                {
+                    isProcessingPassenger = false;
+                }
+
+                return;
+            }
+        }
+        else
+        {
+            // If not enforcing color matching, just get the first NPC
+            matchingNPC = npcManager.GetNPCAtIndex(0);
+            matchingIndex = 0;
+        }
+
+        if (matchingNPC != null)
+        {
+            DebugLog($"Processing passenger: {matchingNPC.name} for vehicle");
 
             // Create a list with just this one passenger for the vehicle
-            List<NPCController> passengerList = new List<NPCController> { npc };
+            List<NPCController> passengerList = new List<NPCController> { matchingNPC };
 
             // If this is the first passenger for this vehicle, assign the passenger list
             if (vehicleData.remainingCapacity == vehicleData.vehicle.GetPassengerCapacity())
@@ -113,19 +182,19 @@ public class PassengerAccommodationManager : MonoBehaviour
             else
             {
                 // Add this passenger to the existing list
-                vehicleData.vehicle.AddPassenger(npc);
+                vehicleData.vehicle.AddPassenger(matchingNPC);
             }
 
             // Unregister NPC from queue
-            npcManager.UnregisterNPC(npc);
+            npcManager.UnregisterNPC(matchingNPC);
 
             // Determine seat position and set custom destination for the NPC
             int seatIndex = vehicleData.vehicle.GetPassengerCapacity() - vehicleData.remainingCapacity;
             Vector3 seatPosition = vehicleData.vehicle.CalculateSeatPosition(seatIndex);
-            npc.SetCustomDestination(seatPosition, vehicleData.vehicle.transform.rotation);
+            matchingNPC.SetCustomDestination(seatPosition, vehicleData.vehicle.transform.rotation);
 
             // Start monitoring this NPC for boarding completion with proper seat index
-            StartCoroutine(MonitorPassengerBoarding(npc, vehicleData.vehicle, seatIndex));
+            StartCoroutine(MonitorPassengerBoarding(matchingNPC, vehicleData.vehicle, seatIndex));
 
             // Update remaining capacity
             vehicleData = pendingVehicles.Dequeue();
@@ -200,9 +269,10 @@ public class PassengerAccommodationManager : MonoBehaviour
     /// <summary>
     /// Wait for a delay then process the next passenger
     /// </summary>
-    private IEnumerator ProcessNextPassengerAfterDelay()
+    private IEnumerator ProcessNextPassengerAfterDelay(float overrideDelay = -1)
     {
-        yield return new WaitForSeconds(passengerProcessTime);
+        float delay = overrideDelay > 0 ? overrideDelay : passengerProcessTime;
+        yield return new WaitForSeconds(delay);
         ProcessNextPassenger();
     }
 

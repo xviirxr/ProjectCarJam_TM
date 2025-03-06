@@ -319,6 +319,7 @@ GameObject:
   - component: {fileID: -8820296878381059947}
   - component: {fileID: 8222574150247843321}
   - component: {fileID: 7418036211898279186}
+  - component: {fileID: 7819762968066431234}
   m_Layer: 7
   m_Name: Vehicle_Medium_SUV_Variant
   m_TagString: Untagged
@@ -462,6 +463,24 @@ MonoBehaviour:
   forwardArrowIndicator: {fileID: 9004391380866718647}
   moveForwardTime: 2
   blockedMoveDuration: 0.5
+--- !u!114 &7819762968066431234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3380593063803988141}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5054924a00a7b9f46aaa2b2d4143234c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehicleColor: 0
+  randomizeColorOnStart: 1
+  coloredRenderers:
+  - {fileID: 8241108971418973269}
+  originalMaterial: {fileID: 0}
+  colorIndicator: {fileID: 0}
 --- !u!1 &3817109476759031056
 GameObject:
   m_ObjectHideFlags: 0

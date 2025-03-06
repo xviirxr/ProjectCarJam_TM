@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: -6896866842408372566}
   - component: {fileID: 1724361675482230039}
   - component: {fileID: 6615563692456632635}
+  - component: {fileID: 8024241528180070807}
   m_Layer: 7
   m_Name: Vehicle_Big_Bus_Variant
   m_TagString: Untagged
@@ -160,6 +161,24 @@ MonoBehaviour:
   forwardArrowIndicator: {fileID: 6564847917921910468}
   moveForwardTime: 2
   blockedMoveDuration: 0.5
+--- !u!114 &8024241528180070807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 739690412818398761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5054924a00a7b9f46aaa2b2d4143234c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehicleColor: 0
+  randomizeColorOnStart: 1
+  coloredRenderers:
+  - {fileID: 7570243114545466135}
+  originalMaterial: {fileID: 0}
+  colorIndicator: {fileID: 0}
 --- !u!1 &4833893308108045941
 GameObject:
   m_ObjectHideFlags: 0

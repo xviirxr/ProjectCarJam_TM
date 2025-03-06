@@ -5,9 +5,6 @@ using UnityEngine;
 using Sirenix.OdinInspector;
 #endif
 
-/// <summary>
-/// Manages the parking spaces for vehicles picking up passengers
-/// </summary>
 public class ParkingSpaceManager : MonoBehaviour
 {
     public enum VehicleSize
@@ -23,6 +20,9 @@ public class ParkingSpaceManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private PassengerAccommodationManager passengerManager;
     [SerializeField] private NPCManager npcManager;
+
+    [Header("Color Matching")]
+    [SerializeField] private bool enforceColorMatching = true;
 
     [Header("Vehicle Servicing")]
     [SerializeField] private bool serviceOneVehicleAtATime = true;
@@ -56,21 +56,27 @@ public class ParkingSpaceManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Registers a vehicle with the manager
-    /// </summary>
     public void RegisterVehicle(VehicleController vehicle)
     {
         if (vehicle != null && !availableVehicles.Contains(vehicle))
         {
             availableVehicles.Add(vehicle);
-            Debug.Log($"Vehicle registered: {vehicle.name}, Size: {vehicle.GetVehicleSize()}, Total vehicles: {availableVehicles.Count}");
+
+            // Get the vehicle's color for logging
+            string colorInfo = "";
+            if (enforceColorMatching)
+            {
+                VehicleColorController colorController = vehicle.GetComponent<VehicleColorController>();
+                if (colorController != null)
+                {
+                    colorInfo = $", Color: {colorController.GetVehicleColor()}";
+                }
+            }
+
+            Debug.Log($"Vehicle registered: {vehicle.name}, Size: {vehicle.GetVehicleSize()}{colorInfo}, Total vehicles: {availableVehicles.Count}");
         }
     }
 
-    /// <summary>
-    /// Unregisters a vehicle from the manager
-    /// </summary>
     public void UnregisterVehicle(VehicleController vehicle)
     {
         if (vehicle != null)
@@ -80,11 +86,49 @@ public class ParkingSpaceManager : MonoBehaviour
         }
     }
 
+    public bool HasVehicleAvailableForColor(ColorCodeManager.ColorCode npcColor)
+    {
+        if (!enforceColorMatching)
+            return availableVehicles.Count > 0;
+
+        foreach (VehicleController vehicle in availableVehicles)
+        {
+            if (vehicle != null && !vehicle.IsAssigned())
+            {
+                VehicleColorController colorController = vehicle.GetComponent<VehicleColorController>();
+                if (colorController != null && colorController.GetVehicleColor() == npcColor)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
 #if UNITY_EDITOR
     [Button("Summon Vehicle")]
     public void SummonVehicleButton(VehicleSize vehicleSize)
     {
         SummonVehicle(vehicleSize);
+    }
+
+    [Button("Summon Red Vehicle")]
+    public void SummonRedVehicle(VehicleSize vehicleSize)
+    {
+        SummonVehicleWithColor(vehicleSize, ColorCodeManager.ColorCode.Red);
+    }
+
+    [Button("Summon Blue Vehicle")]
+    public void SummonBlueVehicle(VehicleSize vehicleSize)
+    {
+        SummonVehicleWithColor(vehicleSize, ColorCodeManager.ColorCode.Blue);
+    }
+
+    [Button("Summon Yellow Vehicle")]
+    public void SummonYellowVehicle(VehicleSize vehicleSize)
+    {
+        SummonVehicleWithColor(vehicleSize, ColorCodeManager.ColorCode.Yellow);
     }
 
     [ShowInInspector, ReadOnly]
@@ -112,10 +156,18 @@ public class ParkingSpaceManager : MonoBehaviour
     public int VehiclesInServiceQueue => vehicleServiceQueue.Count;
 #endif
 
-    /// <summary>
-    /// Summons a vehicle of the specified size
-    /// </summary>
     public void SummonVehicle(VehicleSize vehicleSize)
+    {
+        // No longer assigning colors directly
+        SummonVehicleImplementation(vehicleSize, null);
+    }
+
+    public void SummonVehicleWithColor(VehicleSize vehicleSize, ColorCodeManager.ColorCode color)
+    {
+        SummonVehicleImplementation(vehicleSize, color);
+    }
+
+    private void SummonVehicleImplementation(VehicleSize vehicleSize, ColorCodeManager.ColorCode? color)
     {
         // Find an available parking space
         ParkSpaceController availableSpace = FindAvailableParkingSpace();
@@ -126,24 +178,47 @@ public class ParkingSpaceManager : MonoBehaviour
         }
 
         // Try to find an available vehicle of the requested size
-        VehicleController availableVehicle = FindAvailableVehicle(vehicleSize);
+        VehicleController availableVehicle = null;
+
+        if (color.HasValue)
+        {
+            // Find vehicle with matching color
+            availableVehicle = FindAvailableVehicleWithColor(vehicleSize, color.Value);
+        }
+        else
+        {
+            // Find any vehicle of the right size
+            availableVehicle = FindAvailableVehicle(vehicleSize);
+        }
 
         if (availableVehicle != null)
         {
             // Use an existing vehicle
-            Debug.Log($"Using existing vehicle: {availableVehicle.name}");
+            string colorInfo = "";
+            if (color.HasValue)
+            {
+                colorInfo = $" with color {color.Value}";
+
+                // Use the vehicle's existing color controller to set the color
+                // This will now handle unregistering with ColorCodeManager
+                VehicleColorController colorController = availableVehicle.GetComponent<VehicleColorController>();
+                if (colorController != null)
+                {
+                    colorController.SetVehicleColor(color.Value);
+                }
+            }
+
+            Debug.Log($"Using existing vehicle: {availableVehicle.name}{colorInfo}");
             availableVehicle.AssignParkingSpace(availableSpace);
             availableSpace.AssignVehicle(availableVehicle);
         }
         else
         {
-            Debug.LogWarning($"No available vehicle of size {vehicleSize} found!");
+            string colorInfo = color.HasValue ? $" with color {color.Value}" : "";
+            Debug.LogWarning($"No available vehicle of size {vehicleSize}{colorInfo} found!");
         }
     }
 
-    /// <summary>
-    /// Finds an available vehicle of the specified size
-    /// </summary>
     private VehicleController FindAvailableVehicle(VehicleSize size)
     {
         foreach (VehicleController vehicle in availableVehicles)
@@ -156,9 +231,22 @@ public class ParkingSpaceManager : MonoBehaviour
         return null;
     }
 
-    /// <summary>
-    /// Finds an available parking space
-    /// </summary>
+    private VehicleController FindAvailableVehicleWithColor(VehicleSize size, ColorCodeManager.ColorCode color)
+    {
+        foreach (VehicleController vehicle in availableVehicles)
+        {
+            if (vehicle != null && vehicle.GetVehicleSize() == size && !vehicle.IsAssigned())
+            {
+                VehicleColorController colorController = vehicle.GetComponent<VehicleColorController>();
+                if (colorController != null && colorController.GetVehicleColor() == color)
+                {
+                    return vehicle;
+                }
+            }
+        }
+        return null;
+    }
+
     private ParkSpaceController FindAvailableParkingSpace()
     {
         foreach (ParkSpaceController space in parkingSpaces)
@@ -169,25 +257,16 @@ public class ParkingSpaceManager : MonoBehaviour
         return null;
     }
 
-    /// <summary>
-    /// Gets the NPCManager reference
-    /// </summary>
     public NPCManager GetNPCManager()
     {
         return npcManager;
     }
 
-    /// <summary>
-    /// Gets the PassengerAccommodationManager reference
-    /// </summary>
     public PassengerAccommodationManager GetPassengerManager()
     {
         return passengerManager;
     }
 
-    /// <summary>
-    /// Vehicle calls this when it's ready to load passengers
-    /// </summary>
     public void VehicleReadyForPassengers(VehicleController vehicle, ParkSpaceController parkSpace)
     {
         if (serviceOneVehicleAtATime)
@@ -211,9 +290,6 @@ public class ParkingSpaceManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Services the next vehicle in the queue
-    /// </summary>
     private void ServiceNextVehicle()
     {
         if (vehicleServiceQueue.Count == 0)
@@ -246,9 +322,6 @@ public class ParkingSpaceManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Called when a vehicle completes passenger assignment (but may still be loading passengers)
-    /// </summary>
     public void VehicleLoadingComplete(VehicleController vehicle)
     {
         // If using service queue, this indicates the vehicle is done with its passenger assignment
@@ -256,9 +329,6 @@ public class ParkingSpaceManager : MonoBehaviour
         // That's handled in VehicleDeparting
     }
 
-    /// <summary>
-    /// Vehicle calls this when it's ready to depart
-    /// </summary>
     public void VehicleDeparting(VehicleController vehicle, ParkSpaceController parkSpace)
     {
         // Free up the parking space
@@ -285,17 +355,11 @@ public class ParkingSpaceManager : MonoBehaviour
         ServiceNextVehicle();
     }
 
-    /// <summary>
-    /// Gets all parking spaces
-    /// </summary>
     public ParkSpaceController[] GetParkingSpaces()
     {
         return parkingSpaces;
     }
 
-    /// <summary>
-    /// Gets a specific parking space by index
-    /// </summary>
     public ParkSpaceController GetParkingSpace(int index)
     {
         if (index >= 0 && index < parkingSpaces.Length)

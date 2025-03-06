@@ -102,6 +102,9 @@ public class SplineQueueController : MonoBehaviour
             return;
         }
 
+        // We no longer need to assign colors here - NPCColorController will get its color
+        // from ColorCodeManager in its Start() method
+
         // Initialize the NPC with current queue position
         npcController.Initialize(queueSpline, npcManager, GetQueueCount());
         npcManager.RegisterNPC(npcController);

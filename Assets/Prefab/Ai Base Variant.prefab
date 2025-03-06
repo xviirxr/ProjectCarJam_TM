@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8367242623388261054}
   - component: {fileID: 5064549775770978760}
   - component: {fileID: 1968777119791033570}
+  - component: {fileID: 5264908341814112600}
   m_Layer: 0
   m_Name: Ai Base Variant
   m_TagString: Untagged
@@ -70,6 +71,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   useAnimator: 1
   walkParameterName: isWalking
+--- !u!114 &5264908341814112600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8175580278351539018}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac1a7f05515c4c9469c45d5811d1e102, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  npcColor: 0
+  randomizeColorOnStart: 1
+  coloredRenderers:
+  - {fileID: 4374164978629703744}
+  colorIndicatorRenderer: {fileID: 0}
+  originalMaterial: {fileID: 0}
 --- !u!1001 &3296006535699266671
 PrefabInstance:
   m_ObjectHideFlags: 0
