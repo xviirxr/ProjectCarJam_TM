@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 400000}
   - component: {fileID: 3300000}
   - component: {fileID: 2300000}
-  - component: {fileID: 8261642691767641234}
-  - component: {fileID: 8710514323655362548}
+  - component: {fileID: 1893370315613960278}
+  - component: {fileID: 8292068952169467527}
   m_Layer: 0
   m_Name: Props_Coffee shop chair
   m_TagString: Untagged
@@ -88,7 +88,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &8261642691767641234
+--- !u!114 &1893370315613960278
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -140,7 +140,7 @@ MonoBehaviour:
     fillPass:
       shader: {fileID: 0}
       serializedProperties: []
---- !u!114 &8710514323655362548
+--- !u!114 &8292068952169467527
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

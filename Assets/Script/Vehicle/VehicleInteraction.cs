@@ -10,6 +10,7 @@ public class VehicleInteraction : MonoBehaviour
     private ParkingSpaceManager parkingManager;
     private VehicleController vehicleController;
     private VehicleTraversalController traversalController;
+    private VehicleFrontController frontController;
 
     private void Start()
     {
@@ -20,6 +21,7 @@ public class VehicleInteraction : MonoBehaviour
         }
 
         traversalController = GetComponent<VehicleTraversalController>();
+        frontController = GetComponent<VehicleFrontController>();
 
         if (parkingManager == null)
         {
@@ -82,9 +84,23 @@ public class VehicleInteraction : MonoBehaviour
                         Debug.Log("Vehicle is already following a traversal path. Cannot interact.");
                         return;
                     }
+
+                    if (frontController != null && frontController.IsMoving())
+                    {
+                        Debug.Log("Vehicle is already in a movement animation. Cannot interact.");
+                        return;
+                    }
                 }
 
-                AssignVehicleToParking();
+                // Check front before assigning to parking
+                if (frontController != null)
+                {
+                    frontController.CheckFrontAndMove();
+                }
+                else
+                {
+                    AssignVehicleToParking();
+                }
             }
         }
     }
@@ -183,6 +199,18 @@ public class VehicleInteraction : MonoBehaviour
         {
             Debug.LogError("No available parking spaces for path test!");
         }
+    }
+
+    [Button("Test Front Check and Move")]
+    private void TestFrontCheckAndMove()
+    {
+        if (frontController == null)
+        {
+            Debug.LogError("Cannot test - No VehicleFrontController attached to this object!");
+            return;
+        }
+
+        frontController.CheckFrontAndMove();
     }
 #endif
 }

@@ -456,6 +456,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 034bc47afcbf5e141a58d5c20b7808e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &6948945194380039882
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 980214025584566000}
+  m_Layer: 0
+  m_Name: Forward Checker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &980214025584566000
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6948945194380039882}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.1960002, z: 3.513}
+  m_LocalScale: {x: 1.3333335, y: 1.3333335, z: 1.3333335}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6469166657015692210}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8797304266755454308
 GameObject:
   m_ObjectHideFlags: 0
@@ -774,7 +805,8 @@ GameObject:
   - component: {fileID: 4893897119106142022}
   - component: {fileID: -3214039320493330952}
   - component: {fileID: 3044087766427867782}
-  m_Layer: 0
+  - component: {fileID: 8802008928141364418}
+  m_Layer: 7
   m_Name: Vehicle_Small_Car_Variant
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -801,6 +833,7 @@ Transform:
   - {fileID: 1990656891625991102}
   - {fileID: 1262507603721362763}
   - {fileID: 1608065440815038885}
+  - {fileID: 980214025584566000}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7866653781878943307
@@ -894,6 +927,26 @@ MonoBehaviour:
   - {fileID: 6205942251352949658}
   - {fileID: 6106177150187924961}
   - {fileID: 7334189234346978106}
+--- !u!114 &8802008928141364418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9152932048404514567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b723de9bc966864ba8188942dbb8ea7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  raycastOrigin: {fileID: 980214025584566000}
+  raycastDistance: 2
+  vehicleLayerMask:
+    serializedVersion: 2
+    m_Bits: 128
+  forwardArrowIndicator: {fileID: 7143469917957657842}
+  moveForwardTime: 2
+  blockedMoveDuration: 0.5
 --- !u!1001 &4321965918385185181
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1018,6 +1071,11 @@ PrefabInstance:
 --- !u!224 &1608065440815038885 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 3290525925739683896, guid: 66f452428e354f74b91c1a108ab10071, type: 3}
+  m_PrefabInstance: {fileID: 4321965918385185181}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &7143469917957657842 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6401868039800730991, guid: 66f452428e354f74b91c1a108ab10071, type: 3}
   m_PrefabInstance: {fileID: 4321965918385185181}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6101120781623697435
