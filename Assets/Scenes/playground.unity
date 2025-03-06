@@ -566,6 +566,9 @@ MonoBehaviour:
   redNPCsAssigned: 0
   blueNPCsAssigned: 0
   yellowNPCsAssigned: 0
+  useOrganicDistribution: 1
+  clusterProbability: 0.6
+  maxClusterSize: 4
 --- !u!1001 &70438729
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -668,6 +671,7 @@ Transform:
   - {fileID: 832575519}
   - {fileID: 29111090}
   - {fileID: 1444125706}
+  - {fileID: 883520671}
   - {fileID: 1136002174}
   - {fileID: 1241174948}
   - {fileID: 432083413}
@@ -3144,6 +3148,115 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: d34e8533c8de8ec45869f9144584d929, type: 3}
   m_PrefabInstance: {fileID: 699310043}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &764965528
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 764965529}
+  - component: {fileID: 764965532}
+  - component: {fileID: 764965531}
+  - component: {fileID: 764965530}
+  m_Layer: 0
+  m_Name: e
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &764965529
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 764965528}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 2.0034, y: 1.78, z: 5.74}
+  m_LocalScale: {x: 0.28875762, y: 1, z: 0.33270973}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 983096202}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+--- !u!64 &764965530
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 764965528}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &764965531
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 764965528}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 424a8536a095cdf4dbda6669997e4333, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &764965532
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 764965528}
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1001 &804852645
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3515,6 +3628,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2345202065488681297, guid: 141bf2c5072e6134a9ef72d77743f030, type: 3}
   m_PrefabInstance: {fileID: 876315982}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &883520670
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 883520671}
+  m_Layer: 0
+  m_Name: Road End Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &883520671
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 883520670}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 3.7134838, y: -0.21, z: 687}
+  m_LocalScale: {x: 11.868296, y: 1.2828, z: 9.11691}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 105969621}
+  m_LocalEulerAnglesHint: {x: 0, y: 35, z: 0}
 --- !u!1001 &883756727
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3986,7 +4130,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 400000, guid: c3e95e72d6dba334594c3c5c37fcf18a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 764965529}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c3e95e72d6dba334594c3c5c37fcf18a, type: 3}
 --- !u!4 &983096202 stripped
@@ -6483,23 +6630,23 @@ MonoBehaviour:
   - m_EditModeType: 1
     m_Knots:
     - Position:
-        x: 0.5797653
-        y: 0.0000019073486
-        z: 0.16671371
+        x: -19.940235
+        y: 0
+        z: 0.18671417
       TangentIn:
         x: -0
         y: -0
-        z: -0.9441194
+        z: -2.9960284
       TangentOut:
         x: 0
         y: 0
-        z: 0.9441194
+        z: 2.9960284
       Rotation:
         value:
-          x: 0
-          y: 0.70146704
-          z: 0
-          w: 0.71270186
+          x: -0.000000023092014
+          y: 0.70557106
+          z: 0.00000002192179
+          w: 0.70863926
     - Position:
         x: 10.019768
         y: 0.0000019073486
@@ -6753,6 +6900,7 @@ MonoBehaviour:
   - {fileID: 1471457800}
   - {fileID: 153358805}
   npcManager: {fileID: 1512651280}
+  roadExitPoint: {fileID: 883520671}
   enforceColorMatching: 1
   enableDebugLogs: 1
 --- !u!1001 &1494185424

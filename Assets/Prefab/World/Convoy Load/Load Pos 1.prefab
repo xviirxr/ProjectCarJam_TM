@@ -1,38 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1160606676369285140
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4284029830709918996}
-  m_Layer: 0
-  m_Name: Departure Points
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &4284029830709918996
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160606676369285140}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1894600791365054450}
-  - {fileID: 595816438348426849}
-  m_Father: {fileID: 7299267503365102889}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2397430361718245093
 GameObject:
   m_ObjectHideFlags: 0
@@ -100,7 +67,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8478415368432146214}
-  - {fileID: 4284029830709918996}
+  - {fileID: 1894600791365054450}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3779513224414999632
@@ -192,7 +159,6 @@ MonoBehaviour:
   parkingPosition: {fileID: 8478415368432146214}
   passengerEntryPoints: []
   parkingEntryExitPoint: {fileID: 1894600791365054450}
-  roadExitPoint: {fileID: 595816438348426849}
   availableColor: {r: 0, g: 1, b: 0, a: 1}
   occupiedColor: {r: 1, g: 0, b: 0, a: 1}
   reservedColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
@@ -287,40 +253,9 @@ Transform:
   m_GameObject: {fileID: 5149090253671083623}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.30070576, z: -0, w: 0.953717}
-  m_LocalPosition: {x: 1.568, y: 0, z: 0.0049999636}
+  m_LocalPosition: {x: 1.5680001, y: 0, z: 0.0050001466}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 4284029830709918996}
-  m_LocalEulerAnglesHint: {x: 0, y: 35, z: 0}
---- !u!1 &6238938929924975557
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 595816438348426849}
-  m_Layer: 0
-  m_Name: Road End Point
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &595816438348426849
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6238938929924975557}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.30070576, z: -0, w: 0.953717}
-  m_LocalPosition: {x: 5.719999, y: 0, z: 13.310001}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4284029830709918996}
+  m_Father: {fileID: 7299267503365102889}
   m_LocalEulerAnglesHint: {x: 0, y: 35, z: 0}

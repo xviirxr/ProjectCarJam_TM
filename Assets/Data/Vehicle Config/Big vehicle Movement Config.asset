@@ -17,6 +17,6 @@ MonoBehaviour:
   acceleration: 25
   deceleration: 10
   steeringFactor: 1.5
-  arrivalDistanceThreshold: 0.7
+  arrivalDistanceThreshold: 1.2
   arrivalAngleThreshold: 8
   pathPointArrivalThreshold: 1.5

@@ -52,6 +52,7 @@ public class VehicleController : MonoBehaviour
     private int passengerCapacity = 4; // Default
     private Transform[] departurePathPoints;
     private int currentDepartPathIndex = 0;
+    private float currentSpeed = 0f; // Added for smooth movement
 
     private ParkingSpaceManager parkingManager;
 
@@ -180,6 +181,103 @@ public class VehicleController : MonoBehaviour
         }
     }
 
+    private void FollowDeparturePath()
+    {
+        if (Vector3.Distance(transform.position, targetPosition) <= movementParams.PathPointArrivalThreshold)
+        {
+            // We've reached a waypoint
+
+            // We're using departurePathPoints array when going through parking space points
+            if (departurePathPoints != null && departurePathPoints.Length > 0)
+            {
+                // Arrived at current path point, go to next
+                currentDepartPathIndex++;
+
+                if (currentDepartPathIndex < departurePathPoints.Length)
+                {
+                    targetPosition = departurePathPoints[currentDepartPathIndex].position;
+                    // Don't set targetRotation here, will be calculated in MoveTowardsPoint
+                }
+                else
+                {
+                    // If we've reached the end of the parking space path points
+                    // Check if we should go to the manager's road exit point
+                    if (parkingManager != null && parkingManager.GetRoadExitPoint() != null)
+                    {
+                        targetPosition = parkingManager.GetRoadExitPoint().position;
+                        // Don't set targetRotation here, will be calculated in MoveTowardsPoint
+
+                        // Clear departure path points to indicate we're now heading to the global exit
+                        departurePathPoints = null;
+                    }
+                    else
+                    {
+                        StartFinalDeparture();
+                    }
+                }
+            }
+            // We're heading directly to the manager's road exit point
+            else if (parkingManager != null && parkingManager.GetRoadExitPoint() != null)
+            {
+                if (Vector3.Distance(transform.position, parkingManager.GetRoadExitPoint().position) <= movementParams.PathPointArrivalThreshold)
+                {
+                    // We've reached the global exit point
+                    StartFinalDeparture();
+                }
+            }
+            else
+            {
+                // No more points to follow
+                StartFinalDeparture();
+            }
+        }
+        else
+        {
+            // Use the proven movement logic from VehicleTraversalController
+            MoveTowardsPoint(targetPosition);
+        }
+    }
+
+    // Movement method copied from VehicleTraversalController
+    private void MoveTowardsPoint(Vector3 targetPosition)
+    {
+        // Calculate direction and distance
+        Vector3 directionToTarget = (targetPosition - transform.position).normalized;
+        float distanceToTarget = Vector3.Distance(transform.position, targetPosition);
+
+        // Calculate rotation
+        Quaternion desiredRotation = Quaternion.LookRotation(directionToTarget);
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            desiredRotation,
+            movementParams.RotationSpeed * Time.deltaTime
+        );
+
+        // Calculate angle to target for speed adjustment
+        float angleToTarget = Quaternion.Angle(transform.rotation, desiredRotation);
+        float speedFactor = Mathf.Clamp01(1.0f - angleToTarget / 90.0f);
+
+        // Adjust target speed based on distance and angle
+        float targetSpeed = movementParams.MoveSpeed;
+
+        // Slow down when approaching target or turning sharply
+        if (distanceToTarget < 5.0f || angleToTarget > 30.0f)
+        {
+            targetSpeed *= Mathf.Min(distanceToTarget / 5.0f, speedFactor * movementParams.SteeringFactor);
+        }
+
+        // Apply acceleration or deceleration
+        if (currentSpeed < targetSpeed)
+            currentSpeed += movementParams.Acceleration * Time.deltaTime;
+        else
+            currentSpeed -= movementParams.Deceleration * Time.deltaTime;
+
+        currentSpeed = Mathf.Clamp(currentSpeed, 0, movementParams.MoveSpeed);
+
+        // Move the vehicle
+        transform.position += transform.forward * currentSpeed * Time.deltaTime;
+    }
+
     public void AssignPassengers(List<NPCController> passengers)
     {
         assignedPassengers = passengers ?? new List<NPCController>();
@@ -220,6 +318,13 @@ public class VehicleController : MonoBehaviour
 
             if (showDebugInfo)
                 Debug.Log($"Vehicle {name} passenger seated at position {seatIndex}");
+
+            // Notify the UI Manager about the passenger being seated
+            VehiclePassengerUIManager uiManager = GetComponent<VehiclePassengerUIManager>();
+            if (uiManager != null)
+            {
+                uiManager.OnPassengerSeated(seatIndex);
+            }
         }
 
         // Check if all assigned passengers are seated
@@ -244,66 +349,62 @@ public class VehicleController : MonoBehaviour
 
     public void Depart()
     {
+        // Reset speed
+        currentSpeed = 0f;
+
+        // Notify the UI Manager that we're departing
+        VehiclePassengerUIManager uiManager = GetComponent<VehiclePassengerUIManager>();
+        if (uiManager != null)
+        {
+            uiManager.OnVehicleDeparting();
+        }
+
         if (assignedParkingSpace != null)
         {
             // Set up departure path
             departurePathPoints = assignedParkingSpace.GetDeparturePathPositions();
             currentDepartPathIndex = 0;
 
-            if (departurePathPoints.Length > 0)
+            if (departurePathPoints != null && departurePathPoints.Length > 0)
             {
                 currentState = VehicleState.FollowingDeparturePath;
                 targetPosition = departurePathPoints[0].position;
-                targetRotation = Quaternion.LookRotation(departurePathPoints[0].position - transform.position);
+                // Don't set targetRotation here, will be calculated in MoveTowardsPoint
             }
             else
             {
-                StartFinalDeparture();
+                // If no departure path points, try to get a direct road exit point from manager
+                if (parkingManager != null && parkingManager.GetRoadExitPoint() != null)
+                {
+                    currentState = VehicleState.FollowingDeparturePath;
+                    targetPosition = parkingManager.GetRoadExitPoint().position;
+                    // Don't set targetRotation here, will be calculated in MoveTowardsPoint
+                }
+                else
+                {
+                    StartFinalDeparture();
+                }
             }
 
             assignedParkingSpace.VehicleDeparting(this);
         }
         else
         {
-            StartFinalDeparture();
-        }
-
-        if (showDebugInfo)
-            Debug.Log($"Vehicle {name} departing");
-    }
-
-    private void FollowDeparturePath()
-    {
-        if (Vector3.Distance(transform.position, targetPosition) <= movementParams.PathPointArrivalThreshold)
-        {
-            // Arrived at current path point, go to next
-            currentDepartPathIndex++;
-
-            if (currentDepartPathIndex < departurePathPoints.Length)
+            // If there's no assigned parking space but we have a manager with an exit point
+            if (parkingManager != null && parkingManager.GetRoadExitPoint() != null)
             {
-                targetPosition = departurePathPoints[currentDepartPathIndex].position;
-                targetRotation = Quaternion.LookRotation(targetPosition - transform.position);
+                currentState = VehicleState.FollowingDeparturePath;
+                targetPosition = parkingManager.GetRoadExitPoint().position;
+                // Don't set targetRotation here, will be calculated in MoveTowardsPoint
             }
             else
             {
                 StartFinalDeparture();
             }
         }
-        else
-        {
-            // Move towards next path point
-            transform.position = Vector3.MoveTowards(
-                transform.position,
-                targetPosition,
-                movementParams.MoveSpeed * Time.deltaTime
-            );
 
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                targetRotation,
-                movementParams.RotationSpeed * Time.deltaTime
-            );
-        }
+        if (showDebugInfo)
+            Debug.Log($"Vehicle {name} departing");
     }
 
     private void StartFinalDeparture()
@@ -318,6 +419,9 @@ public class VehicleController : MonoBehaviour
 
         // Start destruction sequence
         StartCoroutine(DestroyAfterDelay(5f));
+
+        if (showDebugInfo)
+            Debug.Log($"Vehicle {name} starting final departure");
     }
 
     private IEnumerator DestroyAfterDelay(float delay)

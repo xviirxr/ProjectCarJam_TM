@@ -35,6 +35,15 @@ public class ColorCodeManager : MonoBehaviour
     [SerializeField] private int blueNPCsAssigned = 0;
     [SerializeField] private int yellowNPCsAssigned = 0;
 
+    [Header("Organic Distribution Settings")]
+    [SerializeField] private bool useOrganicDistribution = true;
+    [SerializeField] [Range(0f, 1f)] private float clusterProbability = 0.6f;
+    [SerializeField] [Range(1, 5)] private int maxClusterSize = 4;
+
+    // Track the current "gang" color and remaining members to spawn
+    private ColorCode currentClusterColor = ColorCode.Red;
+    private int remainingClusterSize = 0;
+
     private static ColorCodeManager _instance;
     public static ColorCodeManager Instance
     {
@@ -64,6 +73,14 @@ public class ColorCodeManager : MonoBehaviour
         }
 
         ValidateColorMappings();
+        InitializeCluster();
+    }
+
+    private void InitializeCluster()
+    {
+        // Start with a random color cluster
+        currentClusterColor = GetWeightedRandomColor();
+        remainingClusterSize = Random.Range(1, maxClusterSize + 1);
     }
 
     private void ValidateColorMappings()
@@ -134,7 +151,7 @@ public class ColorCodeManager : MonoBehaviour
     {
         ColorCode assignedColor;
 
-        if (enforceColorDistribution)
+        if (!useOrganicDistribution && enforceColorDistribution)
         {
             int totalVehicles = redVehiclesAssigned + blueVehiclesAssigned + yellowVehiclesAssigned;
 
@@ -175,8 +192,14 @@ public class ColorCodeManager : MonoBehaviour
     {
         ColorCode assignedColor;
 
-        if (enforceColorDistribution)
+        if (useOrganicDistribution)
         {
+            // Use organic distribution (clustering)
+            assignedColor = GetOrganicColor();
+        }
+        else if (enforceColorDistribution)
+        {
+            // Use original distribution logic
             int totalNPCs = redNPCsAssigned + blueNPCsAssigned + yellowNPCsAssigned;
 
             if (totalNPCs == 0)
@@ -210,6 +233,38 @@ public class ColorCodeManager : MonoBehaviour
 
         TrackNPCColorAssignment(assignedColor);
         return assignedColor;
+    }
+
+    private ColorCode GetOrganicColor()
+    {
+        // If we have a current cluster with remaining members, use that color
+        if (remainingClusterSize > 0)
+        {
+            remainingClusterSize--;
+            return currentClusterColor;
+        }
+
+        // If cluster is complete, determine if we should start a new cluster
+        bool createNewCluster = Random.value < clusterProbability;
+
+        if (createNewCluster)
+        {
+            // Create a new cluster with a random size and color
+            // Avoid picking the same color for the next cluster
+            ColorCode previousColor = currentClusterColor;
+            do
+            {
+                currentClusterColor = GetWeightedRandomColor();
+            } while (currentClusterColor == previousColor && Random.value < 0.7f); // 70% chance to avoid same color twice
+
+            remainingClusterSize = Random.Range(1, maxClusterSize + 1) - 1; // -1 because we're using one now
+            return currentClusterColor;
+        }
+        else
+        {
+            // Just pick a random color without starting a cluster
+            return GetWeightedRandomColor();
+        }
     }
 
     private ColorCode GetWeightedRandomColor()

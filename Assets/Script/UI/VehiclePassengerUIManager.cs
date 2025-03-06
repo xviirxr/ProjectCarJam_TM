@@ -93,10 +93,46 @@ public class VehiclePassengerUIManager : MonoBehaviour
         if (shouldShowCanvas)
         {
             ShowUI();
+            // Check if we need to update the UI based on the current passengers
+            SyncSeatOccupancyWithVehicle();
         }
         else if (shouldHideCanvas)
         {
             HideUI();
+        }
+    }
+
+    // NEW METHOD: Sync seat occupancy status with VehicleController
+    private void SyncSeatOccupancyWithVehicle()
+    {
+        // Access the private field using reflection to get current seat status
+        // This is a workaround since the VehicleController doesn't expose this information directly
+        System.Reflection.FieldInfo seatOccupiedField = typeof(VehicleController).GetField("seatOccupied",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        if (seatOccupiedField != null)
+        {
+            var vehicleSeatOccupied = seatOccupiedField.GetValue(vehicleController) as List<bool>;
+
+            if (vehicleSeatOccupied != null)
+            {
+                // Update our UI to match the vehicle's internal state
+                for (int i = 0; i < Mathf.Min(seatOccupied.Length, vehicleSeatOccupied.Count); i++)
+                {
+                    SetSeatOccupied(i, vehicleSeatOccupied[i]);
+                }
+            }
+        }
+
+        // Regardless of if reflection worked, also check passenger count
+        int passengerCount = vehicleController.GetPassengerCount();
+        if (passengerCount > 0)
+        {
+            // Make sure at least the first N seats are shown as occupied
+            for (int i = 0; i < Mathf.Min(passengerCount, seatOccupied.Length); i++)
+            {
+                SetSeatOccupied(i, true);
+            }
         }
     }
 
@@ -172,5 +208,11 @@ public class VehiclePassengerUIManager : MonoBehaviour
     {
         ResetAllSeats();
         HideUI();
+    }
+
+    // This method should be called by the VehicleController when a passenger is seated
+    public void OnPassengerSeated(int seatIndex)
+    {
+        SetSeatOccupied(seatIndex, true);
     }
 }

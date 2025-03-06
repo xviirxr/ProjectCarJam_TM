@@ -11,7 +11,7 @@ public class ParkSpaceController : MonoBehaviour
     [SerializeField] private Transform parkingPosition;
     [SerializeField] private Transform[] passengerEntryPoints;
     [SerializeField] private Transform parkingEntryExitPoint;
-    [SerializeField] private Transform roadExitPoint;
+    // roadExitPoint removed - now in ParkingSpaceManager
 
     [Header("Debug Visualization")]
     [SerializeField] private Color availableColor = Color.green;
@@ -113,25 +113,25 @@ public class ParkSpaceController : MonoBehaviour
     }
 
     /// <summary>
-    /// Gets the departure path transforms
+    /// Gets the departure path transforms including the road exit point from the manager
     /// </summary>
     public Transform[] GetDeparturePathPositions()
     {
-        // Create an array with the two exit points
-        if (parkingEntryExitPoint != null && roadExitPoint != null)
+        // Create an array with the parking entry/exit point and the road exit point from manager
+        List<Transform> departurePoints = new List<Transform>();
+
+        if (parkingEntryExitPoint != null)
         {
-            return new Transform[] { parkingEntryExitPoint, roadExitPoint };
-        }
-        else if (parkingEntryExitPoint != null)
-        {
-            return new Transform[] { parkingEntryExitPoint };
-        }
-        else if (roadExitPoint != null)
-        {
-            return new Transform[] { roadExitPoint };
+            departurePoints.Add(parkingEntryExitPoint);
         }
 
-        return new Transform[0];
+        // Get the road exit point from the manager
+        if (parkingManager != null && parkingManager.GetRoadExitPoint() != null)
+        {
+            departurePoints.Add(parkingManager.GetRoadExitPoint());
+        }
+
+        return departurePoints.ToArray();
     }
 
     /// <summary>
@@ -140,14 +140,6 @@ public class ParkSpaceController : MonoBehaviour
     public Transform GetParkingEntryExitPoint()
     {
         return parkingEntryExitPoint;
-    }
-
-    /// <summary>
-    /// Gets the road exit point
-    /// </summary>
-    public Transform GetRoadExitPoint()
-    {
-        return roadExitPoint;
     }
 
     /// <summary>
@@ -172,6 +164,14 @@ public class ParkSpaceController : MonoBehaviour
     public VehicleController GetAssignedVehicle()
     {
         return assignedVehicle;
+    }
+
+    /// <summary>
+    /// Gets the parking manager
+    /// </summary>
+    public ParkingSpaceManager GetParkingManager()
+    {
+        return parkingManager;
     }
 
     /// <summary>
@@ -233,17 +233,30 @@ public class ParkSpaceController : MonoBehaviour
             Gizmos.DrawSphere(parkingEntryExitPoint.position, 0.3f);
         }
 
-        // Draw from entry/exit to road exit
-        if (parkingEntryExitPoint != null && roadExitPoint != null)
+        // Draw from entry/exit to road exit point (from the manager if available)
+        ParkingSpaceManager manager = null;
+        if (Application.isPlaying)
         {
-            Gizmos.DrawLine(parkingEntryExitPoint.position, roadExitPoint.position);
-            Gizmos.DrawSphere(roadExitPoint.position, 0.3f);
+            manager = parkingManager;
         }
-        // If only road exit exists, draw direct line
-        else if (parkingPosition != null && roadExitPoint != null)
+        else
         {
-            Gizmos.DrawLine(parkingPosition.position, roadExitPoint.position);
-            Gizmos.DrawSphere(roadExitPoint.position, 0.3f);
+            // Try to find the manager in edit mode
+            manager = FindFirstObjectByType<ParkingSpaceManager>();
+        }
+
+        if (manager != null && manager.GetRoadExitPoint() != null)
+        {
+            Transform roadExitPoint = manager.GetRoadExitPoint();
+            if (parkingEntryExitPoint != null)
+            {
+                Gizmos.DrawLine(parkingEntryExitPoint.position, roadExitPoint.position);
+            }
+            else if (parkingPosition != null)
+            {
+                // If no entry/exit, draw direct line from parking position
+                Gizmos.DrawLine(parkingPosition.position, roadExitPoint.position);
+            }
         }
     }
 }

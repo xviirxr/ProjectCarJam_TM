@@ -19,6 +19,7 @@ public class ParkingSpaceManager : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private NPCManager npcManager;
+    [SerializeField] private Transform roadExitPoint; // Added road exit point at manager level
 
     [Header("Color Matching")]
     [SerializeField] private bool enforceColorMatching = true;
@@ -46,6 +47,12 @@ public class ParkingSpaceManager : MonoBehaviour
             if (parkingSpaces[i] != null)
                 parkingSpaces[i].Initialize(this, i);
         }
+    }
+
+    // Added method to get the road exit point
+    public Transform GetRoadExitPoint()
+    {
+        return roadExitPoint;
     }
 
     public void RegisterVehicle(VehicleController vehicle)
@@ -347,6 +354,16 @@ public class ParkingSpaceManager : MonoBehaviour
         if (enableDebugLogs)
         {
             Debug.Log($"[ParkingManager] {message}");
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        // Draw the road exit point
+        if (roadExitPoint != null)
+        {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawSphere(roadExitPoint.position, 0.4f);
         }
     }
 }
