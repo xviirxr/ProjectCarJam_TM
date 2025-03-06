@@ -440,56 +440,6 @@ Transform:
   - {fileID: 1297764266}
   m_Father: {fileID: 105969621}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &31924795
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 31924797}
-  - component: {fileID: 31924796}
-  m_Layer: 0
-  m_Name: Passenger Accommodation Manager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &31924796
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 31924795}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d2bc9f14f6b162469087db2daaaece1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  npcManager: {fileID: 1512651280}
-  parkingManager: {fileID: 1488004913}
-  queueController: {fileID: 481693018}
-  passengerProcessTime: 0.25
-  enableDebugLogs: 0
-  enforceColorMatching: 1
---- !u!4 &31924797
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 31924795}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -16.685148, y: 4.1175084, z: -12.037828}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1576398713}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &39027995
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -604,7 +554,7 @@ MonoBehaviour:
     materialColor: {r: 0, g: 0.7692599, b: 1, a: 0}
     uiMaterial: {fileID: 0}
   - colorCode: 2
-    materialColor: {r: 1, g: 0.93410516, b: 0, a: 0}
+    materialColor: {r: 1, g: 0.89164263, b: 0, a: 0}
     uiMaterial: {fileID: 0}
   enforceColorDistribution: 1
   redProbability: 0.33
@@ -5996,10 +5946,9 @@ MonoBehaviour:
   - {fileID: 1091152114}
   - {fileID: 1471457800}
   - {fileID: 153358805}
-  passengerManager: {fileID: 31924796}
   npcManager: {fileID: 1512651280}
   enforceColorMatching: 1
-  serviceOneVehicleAtATime: 1
+  enableDebugLogs: 1
 --- !u!1001 &1494185424
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6139,6 +6088,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   splineQueueController: {fileID: 481693018}
+  updateQueueInterval: 0.5
+  enableDebugLogs: 0
 --- !u!4 &1512651281
 Transform:
   m_ObjectHideFlags: 0
@@ -6400,7 +6351,6 @@ Transform:
   - {fileID: 70408993}
   - {fileID: 481693017}
   - {fileID: 1512651281}
-  - {fileID: 31924797}
   - {fileID: 1488004912}
   - {fileID: 1803887066}
   - {fileID: 1328348738}

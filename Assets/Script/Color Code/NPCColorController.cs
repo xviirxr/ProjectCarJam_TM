@@ -7,9 +7,6 @@ using Sirenix.OdinInspector;
 
 public class NPCColorController : MonoBehaviour
 {
-    [Header("Color Settings")]
-    [SerializeField] private ColorCodeManager.ColorCode npcColor;
-
     [Header("Visual Components")]
     [SerializeField] private Renderer[] coloredRenderers;
     [SerializeField] private Renderer colorIndicatorRenderer;
@@ -18,6 +15,7 @@ public class NPCColorController : MonoBehaviour
     private NPCController npcController;
     private Material coloredMaterial;
     private bool colorAssigned = false;
+    private ColorCodeManager.ColorCode npcColor;
 
     private void Awake()
     {

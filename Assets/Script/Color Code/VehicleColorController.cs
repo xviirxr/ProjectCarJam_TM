@@ -7,9 +7,6 @@ using Sirenix.OdinInspector;
 
 public class VehicleColorController : MonoBehaviour
 {
-    [Header("Color Settings")]
-    [SerializeField] private ColorCodeManager.ColorCode vehicleColor;
-
     [Header("Visual Components")]
     [SerializeField] private Renderer[] coloredRenderers;
     [SerializeField] private Material originalMaterial;
@@ -18,6 +15,7 @@ public class VehicleColorController : MonoBehaviour
     private VehicleController vehicleController;
     private Material coloredMaterial;
     private bool colorAssigned = false;
+    private ColorCodeManager.ColorCode vehicleColor;
 
     private void Awake()
     {

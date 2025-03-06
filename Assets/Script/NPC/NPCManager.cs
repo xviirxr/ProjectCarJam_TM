@@ -5,10 +5,11 @@ using UnityEngine;
 public class NPCManager : MonoBehaviour
 {
     [SerializeField] private SplineQueueController splineQueueController;
+    [SerializeField] private float updateQueueInterval = 0.5f;
+    [SerializeField] private bool enableDebugLogs = false;
 
     private List<NPCController> npcsInQueue = new List<NPCController>();
     private float updateQueuePositionsTimer = 0f;
-    private float updateQueueInterval = 0.5f;
 
     private void Awake()
     {
@@ -39,6 +40,7 @@ public class NPCManager : MonoBehaviour
         {
             npcsInQueue.Add(npc);
             npc.SetQueueIndex(npcsInQueue.Count - 1);
+            DebugLog($"NPC {npc.name} registered at position {npcsInQueue.Count - 1}");
 
             // Force update of all NPCs when a new one is added
             UpdateAllNPCPositions();
@@ -50,12 +52,14 @@ public class NPCManager : MonoBehaviour
         int index = npcsInQueue.IndexOf(npc);
         if (index != -1)
         {
+            DebugLog($"NPC {npc.name} unregistered from position {index}");
             npcsInQueue.RemoveAt(index);
 
             // Update indices for all NPCs behind the removed one
             for (int i = index; i < npcsInQueue.Count; i++)
             {
                 npcsInQueue[i].SetQueueIndex(i);
+                DebugLog($"NPC {npcsInQueue[i].name} moved up to position {i}");
             }
 
             // Force update of all NPCs when one is removed
@@ -106,32 +110,48 @@ public class NPCManager : MonoBehaviour
             Destroy(npcsInQueue[i].gameObject);
         }
         npcsInQueue.Clear();
+        DebugLog("All NPCs cleared from queue");
     }
 
-    public void ServiceFrontNPC(float serviceTime = 0)
+    public bool IsNPCAtFront(NPCController npc)
     {
-        if (npcsInQueue.Count > 0)
-        {
-            NPCController frontNPC = npcsInQueue[0];
+        return npcsInQueue.Count > 0 && npcsInQueue[0] == npc;
+    }
 
-            if (serviceTime > 0)
+    public NPCController GetFirstNPCWithColor(ColorCodeManager.ColorCode colorCode)
+    {
+        foreach (var npc in npcsInQueue)
+        {
+            NPCColorController colorController = npc.GetComponent<NPCColorController>();
+            if (colorController != null && colorController.GetNPCColor() == colorCode)
             {
-                StartCoroutine(ServiceNPCRoutine(frontNPC, serviceTime));
-            }
-            else
-            {
-                frontNPC.RemoveFromQueue();
+                return npc;
             }
         }
+        return null;
     }
 
-    private IEnumerator ServiceNPCRoutine(NPCController npc, float serviceTime)
+    public List<NPCController> GetAllNPCsWithColor(ColorCodeManager.ColorCode colorCode)
     {
-        yield return new WaitForSeconds(serviceTime);
+        List<NPCController> matchingNPCs = new List<NPCController>();
 
-        if (npc != null)
+        foreach (var npc in npcsInQueue)
         {
-            npc.RemoveFromQueue();
+            NPCColorController colorController = npc.GetComponent<NPCColorController>();
+            if (colorController != null && colorController.GetNPCColor() == colorCode)
+            {
+                matchingNPCs.Add(npc);
+            }
+        }
+
+        return matchingNPCs;
+    }
+
+    private void DebugLog(string message)
+    {
+        if (enableDebugLogs)
+        {
+            Debug.Log($"[NPCManager] {message}");
         }
     }
 }

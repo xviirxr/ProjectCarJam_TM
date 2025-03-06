@@ -13,6 +13,9 @@ public class NPCController : MonoBehaviour
     [SerializeField] private bool useAnimator = true;
     [SerializeField] private string walkParameterName = "isWalking";
 
+    [Header("Debug")]
+    [SerializeField] private bool enableDebugLogs = true;
+
     private SplineContainer queueSpline;
     private NPCManager npcManager;
     private int queueIndex;
@@ -26,6 +29,12 @@ public class NPCController : MonoBehaviour
     private bool isCustomDestination = false;
     private Vector3 customDestinationPosition;
     private Quaternion customDestinationRotation;
+
+    private VehicleController targetVehicle = null;
+    private int targetSeatIndex = -1;
+    private bool isBoardingVehicle = false;
+    private float checkVehicleTimer = 0f;
+    private float checkVehicleInterval = 1f;
 
     private Animator animator;
     private float lastQueueCheckTime = 0f;
@@ -51,7 +60,11 @@ public class NPCController : MonoBehaviour
         currentPosition = 0;
         hasReachedDestination = false;
         isCustomDestination = false;
+        isBoardingVehicle = false;
+        targetVehicle = null;
+        targetSeatIndex = -1;
         lastQueueCheckTime = Time.time;
+        checkVehicleTimer = 0f;
 
         SplineQueueController splineController = npcManager.GetSplineQueueController();
         if (splineController != null)
@@ -73,12 +86,25 @@ public class NPCController : MonoBehaviour
 
     private void Update()
     {
+        // Periodically check for vehicle when at front of queue
+        if (queueIndex == 0 && !isBoardingVehicle && !isCustomDestination && hasReachedDestination)
+        {
+            checkVehicleTimer += Time.deltaTime;
+            if (checkVehicleTimer >= checkVehicleInterval)
+            {
+                TryFindVehicleToBoard();
+                checkVehicleTimer = 0f;
+            }
+        }
+
+        // If we are using a custom destination (going to vehicle), handle that movement
         if (isCustomDestination)
         {
             MoveToCustomDestination();
             return;
         }
 
+        // Normal queue behavior
         if (queueSpline == null || npcManager == null)
             return;
 
@@ -96,6 +122,101 @@ public class NPCController : MonoBehaviour
             UpdateTargetPosition();
             CheckForwardMovement();
         }
+    }
+
+    private void TryFindVehicleToBoard()
+    {
+        // Get the NPC's color
+        NPCColorController npcColorController = GetComponent<NPCColorController>();
+        if (npcColorController == null)
+        {
+            DebugLog("No NPCColorController found on this NPC!");
+            return;
+        }
+
+        ColorCodeManager.ColorCode myColor = npcColorController.GetNPCColor();
+        DebugLog($"Looking for vehicle with color: {myColor}");
+
+        // Find parking manager
+        ParkingSpaceManager parkingManager = FindFirstObjectByType<ParkingSpaceManager>();
+        if (parkingManager == null)
+        {
+            DebugLog("No ParkingSpaceManager found in scene!");
+            return;
+        }
+
+        // Check if there's a vehicle available with my color
+        if (!parkingManager.HasVehicleAvailableForColor(myColor))
+        {
+            DebugLog("No matching vehicle available");
+            return;
+        }
+
+        // Find a parked vehicle with matching color that has available seats
+        foreach (var parkSpace in parkingManager.GetParkingSpaces())
+        {
+            if (parkSpace == null || !parkSpace.IsOccupied())
+                continue;
+
+            VehicleController vehicle = parkSpace.GetAssignedVehicle();
+            if (vehicle == null)
+                continue;
+
+            // Check if vehicle is properly parked
+            if (!vehicle.IsReadyForBoarding())
+            {
+                DebugLog($"Vehicle found but not ready for boarding (state: {vehicle.GetCurrentState()})");
+                continue;
+            }
+
+            // Check if vehicle has a color controller
+            VehicleColorController vehicleColorController = vehicle.GetComponent<VehicleColorController>();
+            if (vehicleColorController == null)
+                continue;
+
+            // Check if colors match and vehicle has available seats
+            if (vehicleColorController.GetVehicleColor() == myColor && vehicle.GetAvailableSeats() > 0)
+            {
+                DebugLog($"Found matching vehicle with {vehicle.GetAvailableSeats()} available seats");
+
+                // Board this vehicle
+                StartBoardingVehicle(vehicle);
+                break;
+            }
+        }
+    }
+
+    private void StartBoardingVehicle(VehicleController vehicle)
+    {
+        targetVehicle = vehicle;
+        isBoardingVehicle = true;
+
+        // Get seat index (based on how many passengers are already in the vehicle)
+        targetSeatIndex = vehicle.GetPassengerCapacity() - vehicle.GetAvailableSeats();
+
+        // Calculate seat position
+        Vector3 seatPosition = vehicle.CalculateSeatPosition(targetSeatIndex);
+
+        // Set custom destination to that seat
+        SetCustomDestination(seatPosition, vehicle.transform.rotation);
+
+        // Register as a passenger with the vehicle
+        if (vehicle.GetPassengerCount() == 0)
+        {
+            // First passenger
+            List<NPCController> passengerList = new List<NPCController> { this };
+            vehicle.AssignPassengers(passengerList);
+        }
+        else
+        {
+            // Additional passenger
+            vehicle.AddPassenger(this);
+        }
+
+        // Unregister from queue
+        npcManager.UnregisterNPC(this);
+
+        DebugLog($"Starting to board vehicle at seat {targetSeatIndex}");
     }
 
     public void SetCustomDestination(Vector3 position, Quaternion rotation)
@@ -117,6 +238,7 @@ public class NPCController : MonoBehaviour
 
         if (distance <= 0.1f)
         {
+            // Reached destination
             transform.position = customDestinationPosition;
             transform.rotation = customDestinationRotation;
 
@@ -126,9 +248,23 @@ public class NPCController : MonoBehaviour
             }
 
             hasReachedDestination = true;
+
+            // If boarding vehicle and reached destination, notify vehicle
+            if (isBoardingVehicle && targetVehicle != null && targetSeatIndex >= 0)
+            {
+                DebugLog($"Reached seat {targetSeatIndex} in vehicle");
+
+                // Notify vehicle that passenger is seated
+                targetVehicle.NotifyPassengerSeated(targetSeatIndex);
+
+                // Start self-destruct sequence after delay
+                StartCoroutine(DestroyAfterBoarding());
+            }
+
             return;
         }
 
+        // Still moving to destination
         float speed = walkSpeed * Time.deltaTime;
         transform.position = Vector3.MoveTowards(transform.position, customDestinationPosition, speed);
         transform.rotation = Quaternion.Slerp(transform.rotation, customDestinationRotation, 5f * Time.deltaTime);
@@ -137,6 +273,28 @@ public class NPCController : MonoBehaviour
         {
             animator.SetBool(walkParameterName, true);
         }
+    }
+
+    private IEnumerator DestroyAfterBoarding()
+    {
+        if (targetVehicle == null)
+            yield break;
+
+        float boardingDelay = targetVehicle.GetPassengerBoardingDelay();
+        DebugLog($"Will be destroyed after {boardingDelay} seconds");
+
+        yield return new WaitForSeconds(boardingDelay);
+
+        // Check if vehicle is now full and should depart
+        if (targetVehicle.GetAvailableSeats() <= 0)
+        {
+            DebugLog("Vehicle is now full, signaling departure");
+            targetVehicle.Depart();
+        }
+
+        // Destroy self after boarding is complete
+        DebugLog("Destroying self after boarding");
+        Destroy(gameObject);
     }
 
     private void MoveAlongSpline()
@@ -293,7 +451,10 @@ public class NPCController : MonoBehaviour
 
     protected virtual void OnReachedFront()
     {
-        // Can be overridden in derived classes
+        DebugLog("Reached front of queue");
+
+        // Immediately check for a vehicle to board
+        TryFindVehicleToBoard();
     }
 
     public float GetCurrentPosition()
@@ -326,14 +487,16 @@ public class NPCController : MonoBehaviour
         return isCustomDestination;
     }
 
-    public void ClearCustomDestination()
+    public bool IsBoardingVehicle()
     {
-        isCustomDestination = false;
-        hasReachedDestination = false;
+        return isBoardingVehicle;
+    }
 
-        if (queueSpline != null && npcManager != null)
+    private void DebugLog(string message)
+    {
+        if (enableDebugLogs)
         {
-            UpdateTargetPosition();
+            Debug.Log($"[NPC {name}] {message}");
         }
     }
 

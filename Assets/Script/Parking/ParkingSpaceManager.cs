@@ -18,25 +18,17 @@ public class ParkingSpaceManager : MonoBehaviour
     [SerializeField] private ParkSpaceController[] parkingSpaces;
 
     [Header("References")]
-    [SerializeField] private PassengerAccommodationManager passengerManager;
     [SerializeField] private NPCManager npcManager;
 
     [Header("Color Matching")]
     [SerializeField] private bool enforceColorMatching = true;
-
-    [Header("Vehicle Servicing")]
-    [SerializeField] private bool serviceOneVehicleAtATime = true;
+    [SerializeField] private bool enableDebugLogs = true;
 
     private List<VehicleController> availableVehicles = new List<VehicleController>();
-    private bool isServicingVehicle = false;
-    private Queue<VehicleController> vehicleServiceQueue = new Queue<VehicleController>();
 
     private void Awake()
     {
         // Auto-find references if not assigned
-        if (passengerManager == null)
-            passengerManager = FindFirstObjectByType<PassengerAccommodationManager>();
-
         if (npcManager == null)
             npcManager = FindFirstObjectByType<NPCManager>();
 
@@ -73,7 +65,7 @@ public class ParkingSpaceManager : MonoBehaviour
                 }
             }
 
-            Debug.Log($"Vehicle registered: {vehicle.name}, Size: {vehicle.GetVehicleSize()}{colorInfo}, Total vehicles: {availableVehicles.Count}");
+            DebugLog($"Vehicle registered: {vehicle.name}, Size: {vehicle.GetVehicleSize()}{colorInfo}, Total vehicles: {availableVehicles.Count}");
         }
     }
 
@@ -82,7 +74,7 @@ public class ParkingSpaceManager : MonoBehaviour
         if (vehicle != null)
         {
             availableVehicles.Remove(vehicle);
-            Debug.Log($"Vehicle unregistered: {vehicle.name}, Remaining vehicles: {availableVehicles.Count}");
+            DebugLog($"Vehicle unregistered: {vehicle.name}, Remaining vehicles: {availableVehicles.Count}");
         }
     }
 
@@ -91,9 +83,17 @@ public class ParkingSpaceManager : MonoBehaviour
         if (!enforceColorMatching)
             return availableVehicles.Count > 0;
 
-        foreach (VehicleController vehicle in availableVehicles)
+        foreach (ParkSpaceController space in parkingSpaces)
         {
-            if (vehicle != null && !vehicle.IsAssigned())
+            if (space == null || !space.IsOccupied())
+                continue;
+
+            VehicleController vehicle = space.GetAssignedVehicle();
+            if (vehicle == null)
+                continue;
+
+            // Check if vehicle has available seats and matching color
+            if (vehicle.GetAvailableSeats() > 0)
             {
                 VehicleColorController colorController = vehicle.GetComponent<VehicleColorController>();
                 if (colorController != null && colorController.GetVehicleColor() == npcColor)
@@ -104,6 +104,49 @@ public class ParkingSpaceManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    public VehicleController GetVehicleForColor(ColorCodeManager.ColorCode npcColor)
+    {
+        if (!enforceColorMatching)
+        {
+            // Return the first vehicle with available seats
+            foreach (ParkSpaceController space in parkingSpaces)
+            {
+                if (space == null || !space.IsOccupied())
+                    continue;
+
+                VehicleController vehicle = space.GetAssignedVehicle();
+                if (vehicle != null && vehicle.GetAvailableSeats() > 0)
+                {
+                    return vehicle;
+                }
+            }
+            return null;
+        }
+
+        // Find a vehicle with matching color and available seats
+        foreach (ParkSpaceController space in parkingSpaces)
+        {
+            if (space == null || !space.IsOccupied())
+                continue;
+
+            VehicleController vehicle = space.GetAssignedVehicle();
+            if (vehicle == null)
+                continue;
+
+            // Check if vehicle has available seats and matching color
+            if (vehicle.GetAvailableSeats() > 0)
+            {
+                VehicleColorController colorController = vehicle.GetComponent<VehicleColorController>();
+                if (colorController != null && colorController.GetVehicleColor() == npcColor)
+                {
+                    return vehicle;
+                }
+            }
+        }
+
+        return null;
     }
 
 #if UNITY_EDITOR
@@ -151,9 +194,6 @@ public class ParkingSpaceManager : MonoBehaviour
             return count;
         }
     }
-
-    [ShowInInspector, ReadOnly]
-    public int VehiclesInServiceQueue => vehicleServiceQueue.Count;
 #endif
 
     public void SummonVehicle(VehicleSize vehicleSize)
@@ -208,7 +248,7 @@ public class ParkingSpaceManager : MonoBehaviour
                 }
             }
 
-            Debug.Log($"Using existing vehicle: {availableVehicle.name}{colorInfo}");
+            DebugLog($"Using existing vehicle: {availableVehicle.name}{colorInfo}");
             availableVehicle.AssignParkingSpace(availableSpace);
             availableSpace.AssignVehicle(availableVehicle);
         }
@@ -262,71 +302,17 @@ public class ParkingSpaceManager : MonoBehaviour
         return npcManager;
     }
 
-    public PassengerAccommodationManager GetPassengerManager()
-    {
-        return passengerManager;
-    }
-
     public void VehicleReadyForPassengers(VehicleController vehicle, ParkSpaceController parkSpace)
     {
-        if (serviceOneVehicleAtATime)
-        {
-            // Add to service queue
-            vehicleServiceQueue.Enqueue(vehicle);
-
-            // If not currently servicing, start with this vehicle
-            if (!isServicingVehicle)
-            {
-                ServiceNextVehicle();
-            }
-        }
-        else
-        {
-            // Original behavior - service immediately
-            if (passengerManager != null)
-            {
-                passengerManager.AssignPassengersToVehicle(vehicle, parkSpace);
-            }
-        }
-    }
-
-    private void ServiceNextVehicle()
-    {
-        if (vehicleServiceQueue.Count == 0)
-        {
-            isServicingVehicle = false;
-            return;
-        }
-
-        isServicingVehicle = true;
-        VehicleController nextVehicle = vehicleServiceQueue.Dequeue();
-
-        if (nextVehicle != null && passengerManager != null)
-        {
-            ParkSpaceController parkSpace = null;
-
-            // Find which parking space this vehicle is assigned to
-            foreach (ParkSpaceController space in parkingSpaces)
-            {
-                if (space != null && space.GetAssignedVehicle() == nextVehicle)
-                {
-                    parkSpace = space;
-                    break;
-                }
-            }
-
-            if (parkSpace != null)
-            {
-                passengerManager.AssignPassengersToVehicle(nextVehicle, parkSpace);
-            }
-        }
+        // Vehicle has arrived at parking space and is ready for passengers
+        // With our new approach, NPCs will check for matching vehicles directly
+        DebugLog($"Vehicle {vehicle.name} is ready for passengers at space {parkSpace.GetSpaceIndex()}");
     }
 
     public void VehicleLoadingComplete(VehicleController vehicle)
     {
-        // If using service queue, this indicates the vehicle is done with its passenger assignment
-        // We don't start servicing the next vehicle yet because we need to wait for this one to depart
-        // That's handled in VehicleDeparting
+        // Vehicle is now full of passengers
+        DebugLog($"Vehicle {vehicle.name} loading complete");
     }
 
     public void VehicleDeparting(VehicleController vehicle, ParkSpaceController parkSpace)
@@ -341,18 +327,7 @@ public class ParkingSpaceManager : MonoBehaviour
             vehicle.SetAssigned(false);
         }
 
-        // If using service queue, service the next vehicle
-        if (serviceOneVehicleAtATime && isServicingVehicle)
-        {
-            // Wait a short moment before servicing next vehicle
-            StartCoroutine(ServiceNextAfterDelay(0.5f));
-        }
-    }
-
-    private IEnumerator ServiceNextAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        ServiceNextVehicle();
+        DebugLog($"Vehicle {vehicle.name} departing");
     }
 
     public ParkSpaceController[] GetParkingSpaces()
@@ -365,5 +340,13 @@ public class ParkingSpaceManager : MonoBehaviour
         if (index >= 0 && index < parkingSpaces.Length)
             return parkingSpaces[index];
         return null;
+    }
+
+    private void DebugLog(string message)
+    {
+        if (enableDebugLogs)
+        {
+            Debug.Log($"[ParkingManager] {message}");
+        }
     }
 }
