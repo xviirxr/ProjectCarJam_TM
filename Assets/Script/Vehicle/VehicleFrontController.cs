@@ -20,16 +20,11 @@ public class VehicleFrontController : MonoBehaviour
     [SerializeField] private float moveForwardTime = 2f;
     [SerializeField] private float blockedMoveDuration = 0.5f;
 
-    // These will be taken from VehicleController
-    private float moveSpeed = 5f;
-    private float rotationSpeed = 3f;
-    private float acceleration = 2f;
-    private float deceleration = 4f;
-    private float steeringFactor = 2f;
-
-    // References
+    // Reference to the movement parameters
+    private VehicleMovementParameters movementParams;
     private VehicleController vehicleController;
     private VehicleInteraction vehicleInteraction;
+
     private Vector3 originalPosition;
     private Quaternion originalRotation;
     private bool isMoving = false;
@@ -43,6 +38,21 @@ public class VehicleFrontController : MonoBehaviour
         vehicleController = GetComponent<VehicleController>();
         vehicleInteraction = GetComponent<VehicleInteraction>();
 
+        // Get the movement parameters
+        movementParams = GetComponent<VehicleMovementParameters>();
+        if (movementParams == null && vehicleController != null)
+        {
+            // Try to get from vehicle controller
+            movementParams = vehicleController.GetMovementParameters();
+        }
+
+        if (movementParams == null)
+        {
+            // If still not found, add the component with default values
+            movementParams = gameObject.AddComponent<VehicleMovementParameters>();
+            Debug.LogWarning($"VehicleFrontController on {name} had no VehicleMovementParameters - added with defaults");
+        }
+
         // Create raycast origin if not set
         if (raycastOrigin == null)
         {
@@ -53,73 +63,10 @@ public class VehicleFrontController : MonoBehaviour
 
             Debug.Log("Created raycast origin at: " + raycastOrigin.position);
         }
-
-        // Get movement parameters from VehicleController
-        if (vehicleController != null)
-        {
-            System.Reflection.FieldInfo[] fields = vehicleController.GetType().GetFields(
-                System.Reflection.BindingFlags.Instance |
-                System.Reflection.BindingFlags.NonPublic);
-
-            foreach (var field in fields)
-            {
-                switch (field.Name)
-                {
-                    case "moveSpeed":
-                        moveSpeed = (float)field.GetValue(vehicleController);
-                        break;
-                    case "rotationSpeed":
-                        rotationSpeed = (float)field.GetValue(vehicleController);
-                        break;
-                    case "acceleration":
-                        acceleration = (float)field.GetValue(vehicleController);
-                        break;
-                    case "deceleration":
-                        deceleration = (float)field.GetValue(vehicleController);
-                        break;
-                    case "steeringFactor":
-                        steeringFactor = (float)field.GetValue(vehicleController);
-                        break;
-                }
-            }
-
-            Debug.Log($"Got movement parameters from VehicleController: speed={moveSpeed}, " +
-                      $"rotation={rotationSpeed}, accel={acceleration}, decel={deceleration}");
-        }
     }
 
     private void Start()
     {
-        // Get movement parameters from VehicleController if not already done in Awake
-        if (moveSpeed == 5f && vehicleController != null)
-        {
-            System.Reflection.FieldInfo[] fields = vehicleController.GetType().GetFields(
-                System.Reflection.BindingFlags.Instance |
-                System.Reflection.BindingFlags.NonPublic);
-
-            foreach (var field in fields)
-            {
-                switch (field.Name)
-                {
-                    case "moveSpeed":
-                        moveSpeed = (float)field.GetValue(vehicleController);
-                        break;
-                    case "rotationSpeed":
-                        rotationSpeed = (float)field.GetValue(vehicleController);
-                        break;
-                    case "acceleration":
-                        acceleration = (float)field.GetValue(vehicleController);
-                        break;
-                    case "deceleration":
-                        deceleration = (float)field.GetValue(vehicleController);
-                        break;
-                    case "steeringFactor":
-                        steeringFactor = (float)field.GetValue(vehicleController);
-                        break;
-                }
-            }
-        }
-
         // Make sure the forward arrow indicator is active at start
         if (forwardArrowIndicator != null)
         {
@@ -225,7 +172,7 @@ public class VehicleFrontController : MonoBehaviour
         // Movement with acceleration/deceleration
         while (moveProgress < 1.0f)
         {
-            float targetSpeed = movingForward ? moveSpeed * 0.5f : moveSpeed * 0.6f;
+            float targetSpeed = movingForward ? movementParams.MoveSpeed * 0.5f : movementParams.MoveSpeed * 0.6f;
             float distanceToTarget;
 
             if (movingForward)
@@ -249,11 +196,11 @@ public class VehicleFrontController : MonoBehaviour
 
             // Apply acceleration or deceleration
             if (currentSpeed < targetSpeed)
-                currentSpeed += acceleration * Time.deltaTime;
+                currentSpeed += movementParams.Acceleration * Time.deltaTime;
             else
-                currentSpeed -= deceleration * Time.deltaTime;
+                currentSpeed -= movementParams.Deceleration * Time.deltaTime;
 
-            currentSpeed = Mathf.Clamp(currentSpeed, 0, moveSpeed);
+            currentSpeed = Mathf.Clamp(currentSpeed, 0, movementParams.MoveSpeed);
 
             // Move in the correct direction
             if (movingForward)
@@ -295,14 +242,14 @@ public class VehicleFrontController : MonoBehaviour
 
     /// <summary>
     /// Moves forward for 2 seconds then continues with normal behavior
-    /// Using the same movement logic as VehicleController for consistency
+    /// Using the movement parameters for consistent movement
     /// </summary>
     private IEnumerator MoveForwardThenContinue()
     {
         isMoving = true;
 
         // Calculate a point to move forward
-        Vector3 targetPosition = transform.position + transform.forward * (moveSpeed * moveForwardTime);
+        Vector3 targetPosition = transform.position + transform.forward * (movementParams.MoveSpeed * moveForwardTime);
         Quaternion targetRotation = transform.rotation; // Keep current rotation
 
         // Store starting position for possible collision reset
@@ -320,28 +267,28 @@ public class VehicleFrontController : MonoBehaviour
             Quaternion desiredRotation = Quaternion.LookRotation(directionToTarget);
 
             // Smoothly rotate towards the target (minimal rotation as we're going straight)
-            transform.rotation = Quaternion.Slerp(transform.rotation, desiredRotation, rotationSpeed * Time.deltaTime);
+            transform.rotation = Quaternion.Slerp(transform.rotation, desiredRotation, movementParams.RotationSpeed * Time.deltaTime);
 
             // Determine speed adjustments
             float angleToTarget = Quaternion.Angle(transform.rotation, desiredRotation);
             float speedFactor = Mathf.Clamp01(1.0f - angleToTarget / 90.0f);
 
             // Adjust speed based on distance to target and angle
-            float targetSpeed = moveSpeed;
+            float targetSpeed = movementParams.MoveSpeed;
 
             // Slow down when approaching target
             if (distanceToTarget < 5.0f)
             {
-                targetSpeed *= Mathf.Min(distanceToTarget / 5.0f, speedFactor * steeringFactor);
+                targetSpeed *= Mathf.Min(distanceToTarget / 5.0f, speedFactor * movementParams.SteeringFactor);
             }
 
             // Apply acceleration
             if (currentSpeed < targetSpeed)
-                currentSpeed += acceleration * Time.deltaTime;
+                currentSpeed += movementParams.Acceleration * Time.deltaTime;
             else
-                currentSpeed -= deceleration * Time.deltaTime;
+                currentSpeed -= movementParams.Deceleration * Time.deltaTime;
 
-            currentSpeed = Mathf.Clamp(currentSpeed, 0, moveSpeed);
+            currentSpeed = Mathf.Clamp(currentSpeed, 0, movementParams.MoveSpeed);
 
             // Move the vehicle
             transform.position += transform.forward * currentSpeed * Time.deltaTime;
@@ -363,7 +310,7 @@ public class VehicleFrontController : MonoBehaviour
 
         while (stopElapsed < stopTime && currentSpeed > 0.1f)
         {
-            currentSpeed -= deceleration * Time.deltaTime;
+            currentSpeed -= movementParams.Deceleration * Time.deltaTime;
             if (currentSpeed < 0) currentSpeed = 0;
 
             transform.position += transform.forward * currentSpeed * Time.deltaTime;

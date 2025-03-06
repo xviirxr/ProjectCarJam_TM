@@ -313,6 +313,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8619130408617933154}
+  - component: {fileID: 3530076464336198108}
   - component: {fileID: 5404858080048214384}
   - component: {fileID: 8171411337971382799}
   - component: {fileID: 8751877488050019347}
@@ -350,6 +351,19 @@ Transform:
   - {fileID: 1965908016055956885}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3530076464336198108
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3380593063803988141}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59410adca9166e64c8a97b8ff84ee909, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  config: {fileID: 11400000, guid: a881071892a081c489fca7b37d4f9e3a, type: 2}
 --- !u!114 &5404858080048214384
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -363,15 +377,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   vehicleSize: 1
-  passengerCapacity: 6
-  moveSpeed: 50
-  rotationSpeed: 5
-  arrivalDistance: 1
-  departDelay: 0.15
+  seatPositions: []
   passengerBoardingDelay: 0.25
-  acceleration: 8
-  deceleration: 4
-  steeringFactor: 2
+  passengerContainer: {fileID: 0}
+  showDebugInfo: 1
+  autoRegisterWithManager: 1
 --- !u!114 &8171411337971382799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -418,7 +428,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   useTraversalPath: 1
-  arrivalDistance: 1
   directParkingDistance: 0
   showDebugVisuals: 1
   pathColor: {r: 1, g: 0.5, b: 0, a: 0.5}
@@ -456,12 +465,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   raycastOrigin: {fileID: 1965908016055956885}
-  raycastDistance: 2
+  raycastDistance: 5
   vehicleLayerMask:
     serializedVersion: 2
     m_Bits: 128
   forwardArrowIndicator: {fileID: 9004391380866718647}
-  moveForwardTime: 2
+  moveForwardTime: 1
   blockedMoveDuration: 0.5
 --- !u!114 &7819762968066431234
 MonoBehaviour:
@@ -475,8 +484,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5054924a00a7b9f46aaa2b2d4143234c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  vehicleColor: 0
-  randomizeColorOnStart: 1
   coloredRenderers:
   - {fileID: 8241108971418973269}
   originalMaterial: {fileID: 0}

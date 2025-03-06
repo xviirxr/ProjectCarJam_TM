@@ -9,7 +9,9 @@ public class VehicleTraversalController : MonoBehaviour
 {
     [Header("Traversal Settings")]
     [SerializeField] private bool useTraversalPath = true;
-    [SerializeField] private float arrivalDistance = 1.0f;
+
+    // We'll use the centralized arrival distance instead
+    // [SerializeField] private float arrivalDistance = 1.0f;
 
     // Set to 0 to always use traversal path, never direct
     [SerializeField] private float directParkingDistance = 0f;
@@ -20,6 +22,7 @@ public class VehicleTraversalController : MonoBehaviour
     [SerializeField] private bool logPathInfo = true;
 
     private VehicleController vehicleController;
+    private VehicleMovementParameters movementParams;
     private List<Transform> currentPath = new List<Transform>();
     private int currentPathIndex = 0;
     private bool isFollowingPath = false;
@@ -49,19 +52,20 @@ public class VehicleTraversalController : MonoBehaviour
             Debug.LogError("VehicleTraversalController requires a VehicleController component!");
             enabled = false;
         }
-    }
 
-    private void Start()
-    {
-        // Try to get the arrival distance from vehicle controller
-        if (vehicleController != null)
+        // Get the movement parameters
+        movementParams = GetComponent<VehicleMovementParameters>();
+        if (movementParams == null && vehicleController != null)
         {
-            var arrivalDistField = vehicleController.GetType().GetField("arrivalDistance",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            if (arrivalDistField != null)
-            {
-                arrivalDistance = (float)arrivalDistField.GetValue(vehicleController);
-            }
+            // Try to get from vehicle controller
+            movementParams = vehicleController.GetMovementParameters();
+        }
+
+        if (movementParams == null)
+        {
+            // If still not found, add the component with default values
+            movementParams = gameObject.AddComponent<VehicleMovementParameters>();
+            Debug.LogWarning($"VehicleTraversalController on {name} had no VehicleMovementParameters - added with defaults");
         }
     }
 
@@ -234,8 +238,9 @@ public class VehicleTraversalController : MonoBehaviour
             // Calculate distance to target
             float distanceToTarget = Vector3.Distance(transform.position, targetPoint.position);
 
+            // Use the centralized arrival threshold
             // Check if we've reached the current waypoint
-            if (distanceToTarget <= arrivalDistance)
+            if (distanceToTarget <= movementParams.PathPointArrivalThreshold)
             {
                 Debug.Log("[VehicleTraversal] Reached parking entry/exit point");
 
@@ -249,7 +254,7 @@ public class VehicleTraversalController : MonoBehaviour
                 yield break;
             }
 
-            // Move toward the entry point
+            // Move toward the entry point using the centralized parameters
             MoveTowardsPoint(targetPoint.position);
             yield return null;
         }
@@ -313,8 +318,9 @@ public class VehicleTraversalController : MonoBehaviour
             // Calculate distance to target
             float distanceToTarget = Vector3.Distance(transform.position, targetPoint.position);
 
+            // Use centralized path point arrival threshold
             // Check if we've reached the current waypoint
-            if (distanceToTarget <= arrivalDistance)
+            if (distanceToTarget <= movementParams.PathPointArrivalThreshold)
             {
                 Debug.Log($"[VehicleTraversal] Reached waypoint {currentPathIndex}: {targetPoint.name} (distance: {distanceToTarget})");
 
@@ -348,71 +354,38 @@ public class VehicleTraversalController : MonoBehaviour
     /// </summary>
     private void MoveTowardsPoint(Vector3 targetPosition)
     {
-        // Get movement settings
-        float moveSpeed = 5f;
-        float rotSpeed = 3f;
-        float acceleration = 2f;
-        float deceleration = 4f;
-        float steeringFactor = 2f;
-
-        if (vehicleController != null)
-        {
-            // Get values via reflection
-            var fields = vehicleController.GetType().GetFields(
-                System.Reflection.BindingFlags.Instance |
-                System.Reflection.BindingFlags.NonPublic);
-
-            foreach (var field in fields)
-            {
-                switch (field.Name)
-                {
-                    case "moveSpeed":
-                        moveSpeed = (float)field.GetValue(vehicleController);
-                        break;
-                    case "rotationSpeed":
-                        rotSpeed = (float)field.GetValue(vehicleController);
-                        break;
-                    case "acceleration":
-                        acceleration = (float)field.GetValue(vehicleController);
-                        break;
-                    case "deceleration":
-                        deceleration = (float)field.GetValue(vehicleController);
-                        break;
-                    case "steeringFactor":
-                        steeringFactor = (float)field.GetValue(vehicleController);
-                        break;
-                }
-            }
-        }
-
         // Calculate direction and distance
         Vector3 directionToTarget = (targetPosition - transform.position).normalized;
         float distanceToTarget = Vector3.Distance(transform.position, targetPosition);
 
         // Calculate rotation
         Quaternion desiredRotation = Quaternion.LookRotation(directionToTarget);
-        transform.rotation = Quaternion.Slerp(transform.rotation, desiredRotation, rotSpeed * Time.deltaTime);
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            desiredRotation,
+            movementParams.RotationSpeed * Time.deltaTime
+        );
 
         // Calculate angle to target for speed adjustment
         float angleToTarget = Quaternion.Angle(transform.rotation, desiredRotation);
         float speedFactor = Mathf.Clamp01(1.0f - angleToTarget / 90.0f);
 
         // Adjust target speed based on distance and angle
-        float targetSpeed = moveSpeed;
+        float targetSpeed = movementParams.MoveSpeed;
 
         // Slow down when approaching target or turning sharply
         if (distanceToTarget < 5.0f || angleToTarget > 30.0f)
         {
-            targetSpeed *= Mathf.Min(distanceToTarget / 5.0f, speedFactor * steeringFactor);
+            targetSpeed *= Mathf.Min(distanceToTarget / 5.0f, speedFactor * movementParams.SteeringFactor);
         }
 
         // Apply acceleration or deceleration
         if (currentSpeed < targetSpeed)
-            currentSpeed += acceleration * Time.deltaTime;
+            currentSpeed += movementParams.Acceleration * Time.deltaTime;
         else
-            currentSpeed -= deceleration * Time.deltaTime;
+            currentSpeed -= movementParams.Deceleration * Time.deltaTime;
 
-        currentSpeed = Mathf.Clamp(currentSpeed, 0, moveSpeed);
+        currentSpeed = Mathf.Clamp(currentSpeed, 0, movementParams.MoveSpeed);
 
         // Move the vehicle
         transform.position += transform.forward * currentSpeed * Time.deltaTime;

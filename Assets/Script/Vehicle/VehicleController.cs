@@ -20,10 +20,12 @@ public class VehicleController : MonoBehaviour
 
     [Header("Vehicle Configuration")]
     [SerializeField] private ParkingSpaceManager.VehicleSize vehicleSize = ParkingSpaceManager.VehicleSize.Small;
-    [SerializeField] private float moveSpeed = 10f;  // Increased speed
-    [SerializeField] private float rotationSpeed = 5f;  // Increased rotation speed
-    [SerializeField] private float arrivalDistanceThreshold = 0.5f;
-    [SerializeField] private float arrivalAngleThreshold = 5f;
+
+    // Remove these - will use the shared parameters instead
+    // [SerializeField] private float moveSpeed = 10f;
+    // [SerializeField] private float rotationSpeed = 5f;
+    // [SerializeField] private float arrivalDistanceThreshold = 0.5f;
+    // [SerializeField] private float arrivalAngleThreshold = 5f;
 
     [Header("Passenger Configuration")]
     [SerializeField] private Transform[] seatPositions;
@@ -31,11 +33,14 @@ public class VehicleController : MonoBehaviour
     [SerializeField] private Transform passengerContainer;
 
     [Header("Departure Path")]
-    [SerializeField] private float pathPointArrivalThreshold = 1.0f;
+    // [SerializeField] private float pathPointArrivalThreshold = 1.0f; // This will come from parameters
 
     [Header("Debug")]
     [SerializeField] private bool showDebugInfo = true;
     [SerializeField] private bool autoRegisterWithManager = true;
+
+    // Reference to the movement parameters
+    private VehicleMovementParameters movementParams;
 
     private VehicleState currentState = VehicleState.Idle;
     private ParkSpaceController assignedParkingSpace;
@@ -52,6 +57,15 @@ public class VehicleController : MonoBehaviour
 
     private void Awake()
     {
+        // Get the movement parameters
+        movementParams = GetComponent<VehicleMovementParameters>();
+        if (movementParams == null)
+        {
+            // If not found, add the component with default values
+            movementParams = gameObject.AddComponent<VehicleMovementParameters>();
+            Debug.LogWarning($"VehicleController on {name} had no VehicleMovementParameters - added with defaults");
+        }
+
         // Set passenger capacity based on vehicle size
         switch (vehicleSize)
         {
@@ -111,7 +125,7 @@ public class VehicleController : MonoBehaviour
 
             case VehicleState.Departing:
                 // Move away from scene
-                transform.Translate(Vector3.forward * moveSpeed * Time.deltaTime);
+                transform.Translate(Vector3.forward * movementParams.MoveSpeed * Time.deltaTime);
                 break;
         }
     }
@@ -133,8 +147,8 @@ public class VehicleController : MonoBehaviour
 
     private void MoveTowardsTarget()
     {
-        if (Vector3.Distance(transform.position, targetPosition) <= arrivalDistanceThreshold &&
-            Quaternion.Angle(transform.rotation, targetRotation) <= arrivalAngleThreshold)
+        if (Vector3.Distance(transform.position, targetPosition) <= movementParams.ArrivalDistanceThreshold &&
+            Quaternion.Angle(transform.rotation, targetRotation) <= movementParams.ArrivalAngleThreshold)
         {
             // Arrived at parking space
             currentState = VehicleState.Parked;
@@ -151,9 +165,18 @@ public class VehicleController : MonoBehaviour
         }
         else
         {
-            // Move towards target
-            transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            // Move towards target using unified movement parameters
+            transform.position = Vector3.MoveTowards(
+                transform.position,
+                targetPosition,
+                movementParams.MoveSpeed * Time.deltaTime
+            );
+
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                movementParams.RotationSpeed * Time.deltaTime
+            );
         }
     }
 
@@ -251,7 +274,7 @@ public class VehicleController : MonoBehaviour
 
     private void FollowDeparturePath()
     {
-        if (Vector3.Distance(transform.position, targetPosition) <= pathPointArrivalThreshold)
+        if (Vector3.Distance(transform.position, targetPosition) <= movementParams.PathPointArrivalThreshold)
         {
             // Arrived at current path point, go to next
             currentDepartPathIndex++;
@@ -269,8 +292,17 @@ public class VehicleController : MonoBehaviour
         else
         {
             // Move towards next path point
-            transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            transform.position = Vector3.MoveTowards(
+                transform.position,
+                targetPosition,
+                movementParams.MoveSpeed * Time.deltaTime
+            );
+
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                movementParams.RotationSpeed * Time.deltaTime
+            );
         }
     }
 
@@ -344,6 +376,12 @@ public class VehicleController : MonoBehaviour
         return currentState == VehicleState.Parked ||
                currentState == VehicleState.LoadingPassengers ||
                currentState == VehicleState.PassengersLoaded;
+    }
+
+    // Public accessor to movement parameters for other scripts
+    public VehicleMovementParameters GetMovementParameters()
+    {
+        return movementParams;
     }
 
 #if UNITY_EDITOR

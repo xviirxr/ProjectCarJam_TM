@@ -9,9 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2345202065488681297}
+  - component: {fileID: 4852653561000395020}
+  - component: {fileID: 94208340846341255}
   - component: {fileID: 2310379245802642767}
   - component: {fileID: -2306954876765741825}
-  - component: {fileID: 4852653561000395020}
   - component: {fileID: -6896866842408372566}
   - component: {fileID: 1724361675482230039}
   - component: {fileID: 6615563692456632635}
@@ -46,40 +47,6 @@ Transform:
   - {fileID: 5187990079606489212}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2310379245802642767
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 739690412818398761}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9d396bcd98a04b44789f219604618ce8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  vehicleSize: 2
-  passengerCapacity: 8
-  moveSpeed: 50
-  rotationSpeed: 5
-  arrivalDistance: 1
-  departDelay: 0.2
-  passengerBoardingDelay: 0.25
-  acceleration: 8
-  deceleration: 4
-  steeringFactor: 2
---- !u!114 &-2306954876765741825
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 739690412818398761}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e28ebec6597ce7e499a55d8b26a64c23, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!65 &4852653561000395020
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -101,6 +68,49 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.2762434, y: 2.8003979, z: 9.302495}
   m_Center: {x: -0.024609447, y: 2.037349, z: -0.42999983}
+--- !u!114 &94208340846341255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 739690412818398761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59410adca9166e64c8a97b8ff84ee909, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  config: {fileID: 11400000, guid: 03e79c0a050ffc94e82ae6f4ede6d4f1, type: 2}
+--- !u!114 &2310379245802642767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 739690412818398761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d396bcd98a04b44789f219604618ce8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehicleSize: 2
+  seatPositions: []
+  passengerBoardingDelay: 0.25
+  passengerContainer: {fileID: 0}
+  showDebugInfo: 1
+  autoRegisterWithManager: 1
+--- !u!114 &-2306954876765741825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 739690412818398761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e28ebec6597ce7e499a55d8b26a64c23, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &-6896866842408372566
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -114,7 +124,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   useTraversalPath: 1
-  arrivalDistance: 1
   directParkingDistance: 0
   showDebugVisuals: 1
   pathColor: {r: 1, g: 0.5, b: 0, a: 0.5}
@@ -154,12 +163,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   raycastOrigin: {fileID: 5187990079606489212}
-  raycastDistance: 5
+  raycastDistance: 7
   vehicleLayerMask:
     serializedVersion: 2
     m_Bits: 128
   forwardArrowIndicator: {fileID: 6564847917921910468}
-  moveForwardTime: 2
+  moveForwardTime: 1
   blockedMoveDuration: 0.5
 --- !u!114 &8024241528180070807
 MonoBehaviour:
@@ -173,8 +182,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5054924a00a7b9f46aaa2b2d4143234c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  vehicleColor: 0
-  randomizeColorOnStart: 1
   coloredRenderers:
   - {fileID: 7570243114545466135}
   originalMaterial: {fileID: 0}
