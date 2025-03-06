@@ -168,6 +168,8 @@ public class VehicleFrontController : MonoBehaviour
         float currentSpeed = 0f;
         float moveProgress = 0f;
         bool movingForward = true;
+        float maxReverseTime = 0.4f; // Maximum time allowed for reverse movement
+        float reverseTimer = 0f;
 
         // Movement with acceleration/deceleration
         while (moveProgress < 1.0f)
@@ -186,6 +188,7 @@ public class VehicleFrontController : MonoBehaviour
             }
             else
             {
+                reverseTimer += Time.deltaTime;
                 distanceToTarget = Vector3.Distance(transform.position, startPos);
                 // Start slowing down when we're close to original position
                 if (distanceToTarget < 1.0f)
@@ -222,8 +225,8 @@ public class VehicleFrontController : MonoBehaviour
                 float distanceFromStart = Vector3.Distance(transform.position, startPos);
                 moveProgress = 1.0f - (distanceFromStart / Vector3.Distance(targetPosition, startPos));
 
-                // If we're back at original position
-                if (distanceFromStart < 0.1f || moveProgress >= 1.0f)
+                // If we're back at original position OR reverse timer exceeded
+                if (distanceFromStart < 0.1f || moveProgress >= 1.0f || reverseTimer > maxReverseTime)
                 {
                     moveProgress = 1.0f;
                 }

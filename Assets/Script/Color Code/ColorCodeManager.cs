@@ -151,7 +151,7 @@ public class ColorCodeManager : MonoBehaviour
     {
         ColorCode assignedColor;
 
-        if (!useOrganicDistribution && enforceColorDistribution)
+        if (enforceColorDistribution)
         {
             int totalVehicles = redVehiclesAssigned + blueVehiclesAssigned + yellowVehiclesAssigned;
 
